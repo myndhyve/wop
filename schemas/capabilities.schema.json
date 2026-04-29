@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wop.dev/spec/v1/capabilities.schema.json",
+  "title": "Capabilities",
+  "description": "WOP capability declaration returned from `GET /.well-known/wop`. Superset of the in-package `Capabilities` shape (PR 3b.1.1 in the reference impl) — fields beyond the in-package set are tagged `(future)` in `capabilities.md`. Servers MAY omit (future) fields without losing compliance.",
+  "type": "object",
+  "required": ["protocolVersion", "supportedEnvelopes", "schemaVersions", "limits"],
+  "properties": {
+    "protocolVersion": {
+      "type": "string",
+      "description": "WOP protocol version the server speaks (e.g., `1.0.0`). Independent of `engineVersion` (which gates persisted-doc compatibility per version-negotiation.md).",
+      "minLength": 1
+    },
+    "supportedEnvelopes": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Envelope `type` strings the engine recognizes (e.g., `prd.create`, `theme.create`, `tasks.create`, `clarification.request`)."
+    },
+    "schemaVersions": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 },
+      "description": "Active schema version per envelope type (e.g., `{ \"prd.create\": 2 }`)."
+    },
+    "limits": {
+      "type": "object",
+      "required": ["clarificationRounds", "schemaRounds", "envelopesPerTurn"],
+      "properties": {
+        "clarificationRounds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum total clarification envelopes per task before the engine forces the LLM to proceed."
+        },
+        "schemaRounds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum total schema-validation rounds per envelope before the node fails."
+        },
+        "envelopesPerTurn": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum total envelopes the LLM may emit in a single chat turn."
+        },
+        "maxNodeExecutions": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Engine-side ceiling on total node executions per run. Acts as the upper bound for `RunOptions.configurable.recursionLimit`. Optional in v1; mandatory once CC-1's hard invariant lands. Sentinel `0` means \"not enforced\"."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Hard limits enforced by the engine. See capabilities.md §3 + WOP plan CC-1/CC-4."
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Optional per-canvas-type or per-workflow extensions (additional envelope types, override limits)."
+    },
+    "implementation": {
+      "type": "object",
+      "description": "(future) Identifies the WOP-compliant server (name + version + vendor).",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "vendor": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "engineVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "(future) Server's engineVersion (see version-negotiation.md). Independent of `protocolVersion`."
+    },
+    "eventLogSchemaVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "(future) Server's eventLogSchemaVersion (per-run subcollection contract)."
+    },
+    "supportedTransports": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["rest", "mcp", "a2a", "grpc"] },
+      "description": "(future) Transports the server accepts."
+    },
+    "configurable": {
+      "type": "object",
+      "description": "(future) Per-run overlay schema — what `RunOptions.configurable` keys this server honors."
+    },
+    "observability": {
+      "type": "object",
+      "description": "(future) Hints about emitted spans/metrics/logs. See observability.md."
+    },
+    "minClientVersion": {
+      "type": "string",
+      "description": "(future) Minimum client SDK version the server interops with."
+    },
+    "secrets": {
+      "type": "object",
+      "description": "(future) G22 — host advertises secret/credential resolution. Clients gate BYOK flows on this. Hosts that don't store credentials return `supported: false`.",
+      "required": ["supported"],
+      "properties": {
+        "supported": {
+          "type": "boolean",
+          "description": "Host has any secret-resolution at all."
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["tenant", "user", "run"]
+          },
+          "uniqueItems": true,
+          "description": "Subset of scopes the host implements. Tenant-scoped secrets are workspace-shared; user-scoped are per-end-user; run-scoped are ephemeral per-run."
+        },
+        "resolution": {
+          "type": "string",
+          "enum": ["host-managed"],
+          "description": "Resolution mode. v1.x supports only `host-managed` (clients reference stored secrets via opaque ids); reserved for future modes."
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeCapabilities": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "(future) G23 — host-advertised opaque capability ids that NodeModules may declare in `NodeModule.requires`. Naming convention: dotted, domain-scoped (`chat.sendPrompt`, `canvas.write`, `secrets.byok`). Provider value shapes are documented per-capability alongside consumers, NOT in the protocol package — the protocol owns the *check*, not domain provider contracts. A client that submits a workflow whose nodes declare a `requires` entry SHOULD first verify the host advertises that capability; a host that lacks a capability MUST refuse to dispatch nodes that declare it, terminating the run with `RunSnapshot.error.code = 'capability_not_provided'`. See `capabilities.md` §\"Runtime capabilities (future)\"."
+    },
+    "aiProviders": {
+      "type": "object",
+      "description": "(future) G22 — companion to `secrets`. Advertises which AI providers the host's AI-proxy can route to and which permit BYOK.",
+      "properties": {
+        "supported": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Provider ids the host's AI-proxy can route to. Conventional ids: `anthropic`, `openai`, `gemini`, `mistral`, `cohere`, `vertex`, `bedrock`. Hosts MAY add vendor-prefixed extensions."
+        },
+        "byok": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Subset of `supported` for which BYOK is permitted. Empty array → all calls use platform-managed keys; non-empty → clients MAY pass `ai.credentialRef` in `RunOptions.configurable` for matching providers."
+        }
+      },
+      "additionalProperties": false
+    },
+    "testing": {
+      "type": "object",
+      "description": "Testing-mode capabilities advertised to clients (closes F1). Lets conformance suites + dev clients discover which mock providers the server supports and which API-key prefix denotes test keys (since mock providers are test-keys-only).",
+      "properties": {
+        "mockProviders": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Mock-provider IDs this server recognizes via `RunOptions.configurable.mockProvider.id`. Servers claiming conformance v0.X+ MUST include `stream-text`. Other canonical providers (`tool-calls`, `error`, `usage-only`) are recommended. Implementations MAY add their own (vendor-prefixed)."
+        },
+        "testKeyPrefix": {
+          "type": "string",
+          "description": "API-key prefix that marks a key as test-mode. Reference impl uses `hk_test_`. Mock providers + other test-only surfaces gate on this prefix.",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "forceEngineVersionRange": {
+          "type": "object",
+          "description": "Range of engine versions the server can be forced into via the `X-Force-Engine-Version` request header (test-keys-only). Used by the conformance suite to verify forward-compat fold-best-effort across the version-negotiation matrix. Closes F5.",
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "integer", "minimum": 0, "description": "Lowest forceable engine version. Typically (current - 1) so back-compat is exercised." },
+            "max": { "type": "integer", "minimum": 0, "description": "Highest forceable engine version. Typically (current + 1) so forward-compat is exercised." }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "compliance": {
+      "type": "object",
+      "description": "Privacy / compliance behavior advertised to clients (closes O5). Lets consumers know what masking mode is in effect so a `\"[REDACTED]\"` value in event log payloads is recognizable as a server-side mask vs an upstream null.",
+      "properties": {
+        "defaultMode": {
+          "type": "string",
+          "enum": ["mask", "omit", "hash", "passthrough"],
+          "description": "Server's default masking mode for fields marked sensitive. `mask` (default): replace with `\"[REDACTED]\"`. `omit`: drop the field entirely. `hash`: replace with `\"sha256:<hex>\"` for audit-only equality. `passthrough`: record as-is (NOT recommended for production). Workflow authors MAY override per-workflow via `metadata.complianceConfig.maskingMode`. See observability.md §Privacy classification."
+        },
+        "supportedClasses": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["public", "pii", "phi", "pci", "regulated"] },
+          "uniqueItems": true,
+          "description": "Compliance classes this server applies special handling for. A server MAY accept all five classes but only enforce stricter retention on a subset; this field declares the operational reality so workflow authors can choose a server appropriately."
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

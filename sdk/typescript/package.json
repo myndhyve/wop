@@ -1,0 +1,28 @@
+{
+  "name": "@wop/client",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TypeScript reference SDK for WOP-compliant servers. FINAL v1.0 — first npm publication tracked as G10 phase 2 (see PUBLISHING.md).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}

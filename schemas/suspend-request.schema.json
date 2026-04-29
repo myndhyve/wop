@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wop.dev/spec/v1/suspend-request.schema.json",
+  "title": "InterruptPayload",
+  "description": "Wire format for ctx.interrupt(payload) — the canonical HITL primitive. See spec/v1/interrupt.md for semantics. Discriminated by `kind`. The persisted `interrupt.requested` event carries this payload verbatim plus engine-assigned identity fields.",
+  "type": "object",
+  "required": ["kind", "key", "data"],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["approval", "clarification", "external-event", "custom"],
+      "description": "Discriminator for resume-time routing + UI rendering + observability."
+    },
+    "key": {
+      "type": "string",
+      "description": "Deterministic key used to short-circuit on re-entry after process death. If two interrupt() calls in the same run emit the same key, the second returns the cached result of the first. Recommended: ${runId}:${nodeId}:${interruptCount}.",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "resumeSchema": {
+      "description": "Optional JSON Schema for resume value. Servers SHOULD validate before returning to the suspended executor.",
+      "type": "object"
+    },
+    "timeoutMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional auto-reject after this duration. Engine throws InterruptTimeoutError when exceeded."
+    },
+    "data": {
+      "oneOf": [
+        { "$ref": "#/$defs/ApprovalData" },
+        { "$ref": "#/$defs/ClarificationData" },
+        { "$ref": "#/$defs/ExternalEventData" },
+        { "$ref": "#/$defs/CustomData" }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ApprovalData": {
+      "type": "object",
+      "description": "Payload for kind='approval'. The 5-action vocabulary lifted from the reference impl's suspendResolution.ts.",
+      "required": ["artifactId", "artifactType", "title", "actions"],
+      "properties": {
+        "artifactId": { "type": "string", "minLength": 1 },
+        "artifactType": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "artifactData": {},
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["accept", "reject", "refine", "edit", "ask"]
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Allowed actions. Server MUST enforce on resolve. The 'ask' action does NOT exit the suspend — Q&A exchanges accumulate via askService until accept/reject/refine/edit fires."
+        },
+        "requiredApprovals": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Multi-approver quorum."
+        },
+        "approversList": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Restrict resolution to these user IDs. Empty/unset = any user with approvals:respond scope."
+        },
+        "rejectionPolicy": {
+          "type": "string",
+          "enum": ["single-veto", "majority"],
+          "default": "single-veto"
+        }
+      }
+    },
+    "ClarificationData": {
+      "type": "object",
+      "description": "Payload for kind='clarification'. AI/system asks the user for missing context before continuing.",
+      "required": ["questions"],
+      "properties": {
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "question"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "question": { "type": "string", "minLength": 1 },
+              "schema": { "type": "object", "description": "Optional JSON Schema for the answer." }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "contextType": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "ExternalEventData": {
+      "type": "object",
+      "description": "Payload for kind='external-event'. Engine waits for an external system to POST to /v1/interrupts/{token}.",
+      "required": ["eventType", "correlation"],
+      "properties": {
+        "eventType": {
+          "type": "string",
+          "description": "Stable description of what's awaited. Surfaced in admin panels. Examples: 'stripe.checkout.completed', 'calendar.event.confirmed'."
+        },
+        "correlation": {
+          "type": "object",
+          "description": "Opaque correlation payload — whatever the external system needs to match the interrupt back to its source event."
+        }
+      },
+      "additionalProperties": false
+    },
+    "CustomData": {
+      "type": "object",
+      "description": "Escape hatch for kinds not yet spec'd. Servers MUST accept and persist; UI rendering and admin tooling are best-effort.",
+      "required": ["customKind"],
+      "properties": {
+        "customKind": { "type": "string", "minLength": 1 },
+        "payload": {}
+      },
+      "additionalProperties": false
+    }
+  }
+}

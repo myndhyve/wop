@@ -1,0 +1,82 @@
+name: WOP Spec
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Validates the spec corpus is internally consistent: schemas compile,
+  # OpenAPI/AsyncAPI lint, fixtures validate, prose docs carry status tags.
+  # Server-free — runs without any deployed WOP server.
+  validate:
+    name: Validate spec corpus (server-free)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # The conformance + SDK packages each have their own minimal dep
+      # sets. Install in each subdir.
+      - name: Install conformance deps
+        working-directory: conformance
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck conformance
+        working-directory: conformance
+        run: npx tsc --noEmit
+
+      - name: Run server-free conformance scenarios
+        working-directory: conformance
+        run: npx vitest run src/scenarios/fixtures-valid.test.ts src/scenarios/spec-corpus-validity.test.ts
+
+      - name: Install SDK deps
+        working-directory: sdk/typescript
+        run: npm ci --no-audit --no-fund
+
+      - name: Build TS SDK
+        working-directory: sdk/typescript
+        run: npx tsc
+
+      - name: Setup Python (for SDK smoke)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Python SDK syntax + import smoke
+        working-directory: sdk/python
+        run: |
+          for f in src/wop_client/*.py; do
+            python3 -c "import ast; ast.parse(open('$f').read())"
+          done
+          PYTHONPATH=src python3 -c "import wop_client; print('wop_client', wop_client.__version__)"
+
+      - name: Setup Go (for SDK vet)
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Go SDK vet
+        working-directory: sdk/go
+        run: go vet ./...
+
+      - name: Lint OpenAPI
+        run: npx -y @redocly/cli@latest lint api/openapi.yaml
+
+      - name: Validate AsyncAPI
+        run: npx -y @asyncapi/cli@latest validate api/asyncapi.yaml
