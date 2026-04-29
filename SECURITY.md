@@ -11,18 +11,22 @@
 
 ## Reporting
 
-The WOP security-advisory process is **TBD as of v1.0 final**. If you
-discover a vulnerability in:
+If you discover a vulnerability in:
 
-- the spec corpus (``),
+- the spec corpus (`spec/v1/`),
 - the reference SDKs (`sdk/{typescript,python,go}/`),
 - the conformance harness (`conformance/`),
+- the schemas, OpenAPI, or AsyncAPI contracts,
 
-please open a private security advisory on the host repository
-(GitHub: "Security" → "Advisories" → "Report a vulnerability") rather
-than filing a public issue. If the host repository hasn't enabled
-private advisories, email the repository owner address listed in the
-top-level `CONTRIBUTING.md`.
+please use one of these two channels:
+
+**Preferred — GitHub Security Advisories**
+File a private advisory at https://github.com/myndhyve/wop/security/advisories/new. GitHub provides an embargoed working space for coordinated disclosure, CVE coordination, and downstream notification.
+
+**Email fallback — `security@myndhyve.ai`**
+For reporters who prefer email or for non-vulnerability concerns (license violations, attribution disputes, suspected supply-chain issues).
+
+**Do not file a public issue** for vulnerabilities — the public issue tracker is not embargoed.
 
 ## Scope
 
@@ -45,9 +49,7 @@ provide a remediation timeline as quickly as resourcing allows. The
 project is in early incubation; firm response-time SLAs will be
 added once a maintainer rotation is in place.
 
-If the vulnerability is being actively exploited, contact the host
-repository owner directly via the advisory channel above with the
-subject prefixed `[ACTIVE EXPLOIT]`.
+If the vulnerability is being actively exploited, file the GitHub Security Advisory or email `security@myndhyve.ai` with the subject prefixed `[ACTIVE EXPLOIT]` so the maintainer set is paged.
 
 ## What's tracked
 
@@ -63,8 +65,7 @@ subject prefixed `[ACTIVE EXPLOIT]`.
 
 This document will be promoted from STUB to FINAL when:
 
-1. A stable advisory contact channel is in place (private GitHub
-   advisories enabled OR a dedicated security email).
+1. ~~A stable advisory contact channel is in place.~~ **Done 2026-04-29** — GitHub Security Advisories enabled + `security@myndhyve.ai` provisioned.
 2. The first advisory has been triaged end-to-end (acknowledgment →
    patch → public disclosure → CHANGELOG entry).
 3. The 90-day disclosure window above has been confirmed against the
