@@ -4,7 +4,7 @@
 
 > **Status: COMPLETE — WOP v1.0 FINAL released 2026-04-27.** All 12 prose specs are FINAL v1.0; all 10 JSON Schemas compile clean; OpenAPI 3.1 + AsyncAPI 3.1 lint clean; 3 reference SDKs pinned to 1.0.0; conformance suite at 1.0.0 with 82 scenarios (46 server-free passing locally). The spec corpus is the protocol contract; **engine-implementation conformance** (the six triggers below) is now post-v1.0 ecosystem work — implementations validate themselves against the conformance suite at their own cadence, and the spec contract is locked. See §"v1.0 release record" at the bottom of this doc for the release artifacts.
 
-This plan lives in the spec corpus (alongside `CHANGELOG.md` + `CONTRIBUTING.md`) because it defines what "v1.0 final" means, not how to build the spec. The pre-v1.0 build roadmap is internal to the original implementation and is not republished here.
+This plan lives in the spec corpus (alongside `CHANGELOG.md` + `CONTRIBUTING.md`) because it defines what "v1.0 final" means, not how to build the spec. The how-to-build-the-spec roadmap is at `docs/plans/WORKFLOW-PROTOCOL-WOP-PLAN.md` (gitignored).
 
 ## Contents
 
@@ -54,7 +54,7 @@ Throughout this plan, items are referenced by their gap-code in the source spec 
 | `C*` | Channel gaps | `channels-and-reducers.md` §Open spec gaps |
 | `O*` | Observability gaps | `observability.md` §Open spec gaps |
 | `JS*` | JSON Schema gaps | `schemas/README.md` §Open gaps (all closed) |
-| `CC-*` | Cross-cuts to impl plan | reference-implementation working notes (not republished) |
+| `CC-*` | Cross-cuts to impl plan | `WORKFLOW-PROTOCOL-WOP-PLAN.md` §"Cross-cuts to impl plan" (working copy only — gitignored) |
 
 What's left for v1.0 final — six triggers, organized by type:
 
@@ -430,12 +430,12 @@ If a trigger surfaces a spec decision needed BEFORE the conformance fixture can 
 
 ## What this plan does NOT cover
 
-- **P2-F2** (`@wop/engine` rename + republish) — package extraction work, deferred to Part 2 Phase D per reference-implementation working plan and the `PRD-WOP-MYNDHYVE-EXTENSION-LAYER.md`. Not a v1.0 blocker.
+- **P2-F2** (`@wop/engine` rename + republish) — package extraction work, deferred to Part 2 Phase D per `WORKFLOW-PROTOCOL-WOP-PLAN.md` and the `PRD-WOP-MYNDHYVE-EXTENSION-LAYER.md`. Not a v1.0 blocker.
 - **P2-R1 / P2-R2** (canvas-type decoupling, storage-agnostic event log + suspend) — same; Part 2 Phase D.
 - **Hosted node-pack registry** at `packs.wop.dev` — operations / DevOps work; spec is firm. Not a v1.0 blocker.
 - **P2-F7** (reference docs site / dev portal) — covered by per-package READMEs for v1.0; full docs site is post-v1.0.
 
-These are tracked in reference-implementation working plan (not republished) Part 2 Phase D.
+These are tracked in `docs/plans/WORKFLOW-PROTOCOL-WOP-PLAN.md` Part 2 Phase D.
 
 ## v1.0 release record (2026-04-27)
 
@@ -485,4 +485,4 @@ This table is populated as each implementation ships the corresponding surface. 
 - `conformance/fixtures.md` — fixture contracts (each trigger section above maps to specific fixtures here)
 - `conformance/README.md` — conformance suite operator docs
 - `docs/PRD-WOP-MYNDHYVE-EXTENSION-LAYER.md` — Part 2 Phase D blueprint (post-v1.0 work)
-- reference-implementation working plan (not republished) — historical plan (gitignored)
+- `docs/plans/WORKFLOW-PROTOCOL-WOP-PLAN.md` — historical plan (gitignored)

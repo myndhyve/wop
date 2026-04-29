@@ -1,4 +1,4 @@
-# `@wop/client` — TypeScript Reference SDK (scaffold)
+# `@myndhyve/wop` — TypeScript Reference SDK (scaffold)
 
 > **Status: FINAL v1.0 (2026-04-27).** Hand-authored thin client for the WOP REST surface. Mirrors `../api/openapi.yaml`. Not yet published to npm.
 
@@ -14,7 +14,7 @@ This SDK is hand-authored rather than codegen'd from OpenAPI for two reasons:
 ## Quickstart
 
 ```typescript
-import { WopClient } from '@wop/client';
+import { WopClient } from '@myndhyve/wop';
 
 const client = new WopClient({
   baseUrl: 'https://api.example.com',
@@ -62,7 +62,7 @@ for await (const event of client.runs.events(runId, { streamMode: 'updates' })) 
 
 ```bash
 cd sdk/typescript
-npm install        # installs @wop/client deps locally (NOT in parent monorepo)
+npm install        # installs @myndhyve/wop deps locally (NOT in parent monorepo)
 npx tsc --noEmit   # typecheck the SDK source
 ```
 
@@ -98,7 +98,7 @@ npx tsc --noEmit   # typecheck the SDK source
 | Webhook subscription endpoints | Webhook spec still loose; implement once `webhooks.md` is in DRAFT. |
 | Artifacts endpoints | Spec stub; signature unstable. |
 | Auto-retry with exponential backoff | Stable retry policy needs cross-impl agreement. |
-| Browser bundle (`@wop/client/browser`) | Hand-rolled SSE works in Node; browser fetch+ReadableStream is similar but needs separate testing. |
+| Browser bundle (`@myndhyve/wop/browser`) | Hand-rolled SSE works in Node; browser fetch+ReadableStream is similar but needs separate testing. |
 
 ---
 
@@ -107,7 +107,7 @@ npx tsc --noEmit   # typecheck the SDK source
 ```
 sdk/typescript/
   README.md                  — this file
-  package.json               — @wop/client scaffold (NOT a workspace member)
+  package.json               — @myndhyve/wop scaffold (NOT a workspace member)
   tsconfig.json              — strict TS, ESM
   src/
     index.ts                 — public surface (WopClient + types)

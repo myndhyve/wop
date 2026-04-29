@@ -2,7 +2,7 @@
   "id": "conformance-subworkflow-parent",
   "name": "Conformance: Sub-workflow (parent)",
   "version": "1.0.0",
-  "description": "Parent workflow that dispatches `conformance-subworkflow-child` via `core.subWorkflow` (blocking dispatch with waitForCompletion=true) then completes. Verifies child run starts in the same tenant/scope, parent suspend/resume around child terminal, and child variable propagation through outputMapping. Spec: spec/v1/node-packs.md §Reserved Core WOP node typeIds.",
+  "description": "Parent workflow that dispatches `conformance-subworkflow-child` via `core.subWorkflow` (blocking dispatch with waitForCompletion=true) then completes. Verifies child run starts in the same tenant/scope, parent suspend/resume around child terminal, and child variable propagation through outputMapping. Spec: docs/wop-spec/v1/node-packs.md §Reserved Core WOP node typeIds.",
   "nodes": [
     {
       "id": "parent-start",

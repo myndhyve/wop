@@ -2,7 +2,7 @@
   "id": "conformance-channel-ttl",
   "name": "Conformance: Channel TTL",
   "version": "1.0.0",
-  "description": "Writes 3 entries to channel `events` (ttlMs=200), waits 300ms, writes a 4th entry. The TTL filter at write time MUST drop all 3 priors so only the 4th entry remains. Spec: spec/v1/channels-and-reducers.md §append + §TTL (closes C3).",
+  "description": "Writes 3 entries to channel `events` (ttlMs=200), waits 300ms, writes a 4th entry. The TTL filter at write time MUST drop all 3 priors so only the 4th entry remains. Spec: docs/wop-spec/v1/channels-and-reducers.md §append + §TTL (closes C3).",
   "nodes": [
     {
       "id": "write-a",

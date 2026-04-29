@@ -36,8 +36,11 @@ dev = [
 ]
 
 [project.urls]
-"Spec corpus" = "https://wop.dev/spec/v1/"
-"Source" = "https://github.com/example/wop"
+"Homepage" = "https://github.com/myndhyve/wop"
+"Source" = "https://github.com/myndhyve/wop"
+"Bug Tracker" = "https://github.com/myndhyve/wop/issues"
+"Changelog" = "https://github.com/myndhyve/wop/blob/main/sdk/python/CHANGELOG.md"
+"Spec corpus" = "https://github.com/myndhyve/wop/tree/main/spec/v1/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wop_client"]

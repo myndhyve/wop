@@ -1,0 +1,113 @@
+# WOP spec-corpus publishing workflow (G10 phase 2 — INACTIVE TEMPLATE).
+#
+# Public-repo variant. Layout in this repo: SDKs at sdk/{typescript,python,go}/,
+# conformance suite at conformance/. (The MyndHyve in-tree mirror keeps the
+# same files under docs/wop-spec/v1/.)
+#
+# This file is the .template variant — GitHub Actions IGNORES it because the
+# extension isn't .yml/.yaml at the workflow path. To activate:
+#   1. Resolve the npm publishing identity (token in NPM_TOKEN secret OR
+#      OIDC trusted publisher per package).
+#   2. Resolve the PyPI publishing identity (token in PYPI_TOKEN secret OR
+#      OIDC trusted publisher).
+#   3. Confirm Go module path (go.mod already aligned to this repo).
+#   4. Strip `"private": true` from sdk/typescript/package.json and
+#      conformance/package.json (they're set as a publish gate).
+#   5. Rename this file to `wop-publish.yml`.
+#   6. Push a `v1.0.0` tag — the workflow runs.
+#
+# See PUBLISHING.md for the full activation steps, pre-publish checklist,
+# release-manager process, and rollback procedure.
+
+name: WOP — Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Spec corpus consistency check
+        run: bash scripts/wop-check.sh
+
+  publish-ts-client:
+    needs: preflight
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - run: cd sdk/typescript && npm ci
+      - run: cd sdk/typescript && npm run build
+      - run: cd sdk/typescript && npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-conformance:
+    needs: preflight
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - run: cd conformance && npm ci
+      - run: cd conformance && npm run build:cli
+      - run: cd conformance && npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-python:
+    needs: preflight
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --upgrade build twine
+      - run: cd sdk/python && python -m build
+      - run: cd sdk/python && twine check dist/*
+      - run: cd sdk/python && twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+
+  publish-go:
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      # Go modules are tag-based. The proxy.golang.org cache picks up tags
+      # automatically; this step verifies the tagged module is resolvable.
+      - run: cd sdk/go && go vet ./...
+      - run: cd sdk/go && go test ./...
+      - name: Verify Go module discoverability
+        run: |
+          echo "Go module is tag-driven; the v$VERSION tag has been pushed."
+          echo "Consumers can: go get github.com/myndhyve/wop/sdk/go/v1@v$VERSION"
+          echo "Cache warm-up may take ~5min for proxy.golang.org."
+        env:
+          VERSION: ${{ github.ref_name }}

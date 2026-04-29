@@ -10,8 +10,8 @@ The spec corpus ships 4 distributable artifacts alongside the prose docs:
 
 | Artifact | Package name | Version | Registry | Status |
 |---|---|---|---|---|
-| TypeScript SDK | `@wop/client` | `1.0.0` | npm | In-repo; first publish deferred |
-| TypeScript conformance suite | `@wop/conformance` | `1.6.0` | npm | In-repo; first publish deferred |
+| TypeScript SDK | `@myndhyve/wop` | `1.0.0` | npm | In-repo; first publish deferred |
+| TypeScript conformance suite | `@myndhyve/wop-conformance` | `1.7.0` | npm | In-repo; first publish deferred |
 | Python SDK | `wop-client` | `1.0.0` | PyPI | In-repo; first publish deferred |
 | Go SDK | `wopclient` | `v1.0.0` | Go modules (proxy.golang.org) | In-repo; first publish deferred |
 
@@ -29,13 +29,13 @@ All four are FINAL v1.0 at the source level — the spec contract is locked, the
 | Spec minor release (e.g., 1.0.x → 1.1.0) | All 4 artifacts re-publish at a new minor (or patch, if changes are SDK-internal). |
 | Spec major release (e.g., 1.x → 2.0) | All 4 artifacts re-publish at a new major. Old major remains accessible (npm tags, PyPI versions, Go module paths) for 12 months. |
 | SDK-only patch (e.g., bug fix in TS client) | Only the affected SDK re-publishes; spec corpus version unchanged. |
-| Conformance scenario addition | `@wop/conformance` minor bump; other artifacts unaffected. |
+| Conformance scenario addition | `@myndhyve/wop-conformance` minor bump; other artifacts unaffected. |
 
 ### Versioning alignment
 
-- The 3 SDKs (`@wop/client`, `wop-client`, `wopclient`) MUST track the spec major. A spec at v1.x always has SDKs at v1.x. Within a major, SDK patch versions float independently.
-- `@wop/conformance` independently bumps minors when scenarios are added/removed. Patch versions track bug fixes in scenario assertions.
-- Go module path includes the major (`/v1`) per Go convention; v2 will be a new module path (`github.com/myndhyve/wop/sdk/go/v2`).
+- The 3 SDKs (`@myndhyve/wop`, `wop-client`, `wopclient`) MUST track the spec major. A spec at v1.x always has SDKs at v1.x. Within a major, SDK patch versions float independently.
+- `@myndhyve/wop-conformance` independently bumps minors when scenarios are added/removed. Patch versions track bug fixes in scenario assertions.
+- Go module path includes the major (`/v1`) per Go convention. The v1 path is `github.com/myndhyve/wop/sdk/go/v1`; v2 will be `github.com/myndhyve/wop/sdk/go/v2`.
 
 ### Deprecation policy
 
@@ -60,7 +60,7 @@ Run before EVERY publish (manual or CI-driven). The checklist is a hard gate; on
 - [ ] License is `Apache-2.0` and `LICENSE` file is present in the published artifact.
 - [ ] No `Scaffold` / `not yet published` language in the package description.
 
-### `@wop/client` (npm)
+### `@myndhyve/wop` (npm)
 
 - [ ] `cd sdk/typescript && npm run typecheck` clean.
 - [ ] `cd sdk/typescript && npm run build` produces `dist/` cleanly.
@@ -68,7 +68,7 @@ Run before EVERY publish (manual or CI-driven). The checklist is a hard gate; on
 - [ ] `package.json` `private` field is removed (or set to `false`) — `private: true` blocks publish.
 - [ ] `package.json` `repository` field points at a public source location.
 
-### `@wop/conformance` (npm)
+### `@myndhyve/wop-conformance` (npm)
 
 - [ ] `cd conformance && npm run test` passes (server-free subset MUST pass; server-required scenarios MAY skip if no reference deployment is reachable).
 - [ ] `cd conformance && npm run build:cli` produces `dist/cli.js` cleanly + the bin field resolves.
@@ -108,7 +108,7 @@ For v1.0 launch, the release manager is the spec working group lead (currently T
 
 ## CI automation (phase 2)
 
-Phase 2 of G10 wires GitHub Actions to execute the publish on tag push. A sketch of the workflow lives at `.github/workflows/publish.yml.template` (committed but not active until a maintainer flips the trigger). The template:
+Phase 2 of G10 wires GitHub Actions to execute the publish on tag push. The workflow lives at `.github/workflows/wop-publish.yml.template` (committed but not active until a maintainer flips the trigger). The template:
 
 ```yaml
 name: Publish
@@ -170,7 +170,7 @@ Activation steps when ready:
 2. Resolve the PyPI project claim.
 3. Resolve the Go module path (host repo decision).
 4. Add the three secrets to repo settings.
-5. Move `.github/workflows/publish.yml.template` to `.github/workflows/publish.yml`.
+5. Move `.github/workflows/wop-publish.yml.template` to `.github/workflows/wop-publish.yml`.
 6. Push a `v1.0.0` tag.
 7. Watch the workflow + verify each registry receives the artifact.
 
@@ -187,14 +187,14 @@ The decision is to skip:
 - **The schemas are already the canonical contract.** `api/openapi.yaml` (OpenAPI 3.1) and `schemas/*.json` (JSON Schemas) ARE the wire format. Each SDK hand-mirrors them in its own `types.{ts,py,go}` for ergonomics; the schemas remain authoritative.
 - **A standalone TS types package would create a second source of truth.** It could drift from the canonical schemas and from the per-SDK mirrors. Less surface area to keep aligned.
 - **Non-TS consumers don't benefit.** Python and Go consumers already hand-mirror in their language; extracting TS types in a separate package doesn't help them.
-- **Per the host's Guiding Rule #2** ("treat package lists as capability domains, not npm packages"), the bar to extract is a concrete external consumer with a concrete reason. None exists today.
+- **Per Guiding Rule #2** of the phased plan ("treat the PRD §6.1 package list as capability domains, not npm packages"), the bar to extract is a concrete external consumer with a concrete reason. None exists today.
 
 If a third-party tool later needs codegen-friendly types (e.g., a TS code generator that wants to import them without the runtime), the path is:
 
 1. Verify the JSON Schemas alone aren't sufficient (they usually are — `json-schema-to-typescript` etc.).
 2. If they aren't, extract `@wop/protocol` at that point — type-only, compiled from the JSON Schemas at build time, no hand-mirroring.
 
-Until then, types ship as part of `@wop/client` and consumers can tree-shake the runtime if they only want types. Downstream consumers (host implementations, build pipelines) that need the OpenAPI/AsyncAPI YAML files at build time can vendor them via `@wop/conformance` (which already ships fixtures + schemas; adding `api/` to its `package.json#files` is a 1-line change).
+Until then, types ship as part of `@myndhyve/wop` and consumers can tree-shake the runtime if they only want types.
 
 ---
 
@@ -202,12 +202,12 @@ Until then, types ship as part of `@wop/client` and consumers can tree-shake the
 
 Some artifacts in the spec corpus are documentation-only and explicitly NOT for public registry publication:
 
-- The 15 prose spec docs (`auth.md`, `rest-endpoints.md`, etc.) — distributed via the repo's docs site when ready.
-- The JSON Schemas (`schemas/*.json`) — referenced by URL from the published artifacts; this repo IS the authoritative source.
-- The conformance fixtures (`conformance/fixtures/`) — pulled into `@wop/conformance` at build time.
-- The OpenAPI + AsyncAPI YAMLs — referenced by URL; also vendored into `@wop/conformance` for build-time consumers.
+- The 15 prose spec docs (`auth.md`, `rest-endpoints.md`, etc.) — distributed via the repo's docs site (G12 phase 2) when ready.
+- The JSON Schemas (`schemas/*.json`) — referenced by URL from the published artifacts; the spec-corpus repo IS the authoritative source.
+- The conformance fixtures (`conformance/fixtures/`) — pulled into `@myndhyve/wop-conformance` at build time.
+- The OpenAPI + AsyncAPI YAMLs — referenced by URL.
 
-These artifacts will be hosted at a public docs site eventually; the canonical source remains this repo.
+These artifacts will be hosted at a public location (probably `wop.dev/spec/v1/`) under G12 phase 2; G10 doesn't need to re-publish them.
 
 ---
 

@@ -1,6 +1,6 @@
-# WOP Conformance Test Suite — `@wop/conformance` (scaffold)
+# WOP Conformance Test Suite — `@myndhyve/wop-conformance` (scaffold)
 
-> **Status: 1.6.0 (2026-04-28).** Sixth minor release — closes the post-v1.0 ecosystem trigger set (G1–G6). Adds cost-attribution placeholder scenarios (G6 / O4 — `wop.cost.*` OTel attribute allowlist with redaction enforcement). Phase A complete: all six post-v1.0 conformance triggers shipped. See `CHANGELOG.md` below.
+> **Status: 1.7.0 (2026-04-29).** Seventh minor release — adds vendor-neutral redaction scenarios (NFR-7) gated on `secrets.supported`. Spec-side companion to in-tree redaction harnesses; black-box assertions that any WOP-compliant server doesn't leak canary content via response bodies, 401 envelopes, or RunEvent payloads. Previously: 1.6.0 (2026-04-28) closed the post-v1.0 ecosystem trigger set (G1–G6) with cost-attribution placeholder scenarios. See `CHANGELOG.md` below.
 
 Black-box conformance suite for any WOP-compliant server. Point it at a server URL + API key; it issues HTTP requests against the spec'd endpoints and asserts that responses match the spec.
 
@@ -121,7 +121,13 @@ Placeholder (added in 1.6.0, gated on observable-span access):
 |---|---|---|
 | **Cost attribution** | [`observability.md`](../observability.md) §Cost attribution attributes | 5 `it.todo()` scenarios documenting the contract for `wop.cost.*` OTel attributes (allowlist of 6 — provider, model, tokens.input, tokens.output, usd, duration_ms; redaction enforcement). Runs when a deployed reference exposes OTel spans or surfaces cost via the run snapshot. Runtime side + redaction unit tests are shipped. |
 
-Total at 1.6.0: 102 scenarios across 21 files (50 server-free + 47 server-required + 5 placeholder).
+Server-required (added in 1.7.0):
+
+| Category | Spec doc | Coverage |
+|---|---|---|
+| **Redaction** | [`capabilities.md`](../capabilities.md) §"Secrets" + NFR-7 + §"aiProviders" | Vendor-neutral assertions that the server doesn't leak secret material. Three scenario groups: (a) discovery shape contract — `secrets` + `aiProviders` advertisements are well-formed regardless of `secrets.supported`; when `supported === true`, scopes MUST be non-empty + `resolution === 'host-managed'`; `byok ⊆ supported`. (b) bearer-token redaction — invalid Bearer canary in `Authorization` header is not echoed in the 401 response body. (c) credentialRef echo control — gated on `secrets.supported === true`; canary planted in `configurable.ai.credentialRef` MUST NOT appear in any RunEvent payload (poll-based capture; transport-agnostic). Uses runtime-built canary fixtures (`lib/canaries.ts`) that defeat static secret scanners. 6 scenarios. |
+
+Total at 1.7.0: 108 scenarios across 22 files (50 server-free + 53 server-required + 5 placeholder).
 
 ## Stubbed for v0.7
 
@@ -150,7 +156,7 @@ conformance/
     conformance-multi-node.json
     conformance-idempotent.json
     conformance-cancellable.json
-  package.json                 — @wop/conformance scaffold (NOT linked into the parent monorepo)
+  package.json                 — @myndhyve/wop-conformance scaffold (NOT linked into the parent monorepo)
   vitest.config.ts             — test runner config
   tsconfig.json                — strict TypeScript
   src/
@@ -203,11 +209,11 @@ Each `expect(...)` should have a corresponding spec quote in the assertion messa
 
 ## Future: publishable npm package
 
-Once the suite stabilizes, this directory will be extracted to its own repo and published as `@wop/conformance`. Until then, `npm install` is run from this subdirectory only — it is intentionally NOT a workspace member of the parent monorepo so its deps don't pollute the impl's lockfile.
+Once the suite stabilizes, this directory will be extracted to its own repo and published as `@myndhyve/wop-conformance`. Until then, `npm install` is run from this subdirectory only — it is intentionally NOT a workspace member of the parent monorepo so its deps don't pollute the impl's lockfile.
 
 ## References
 
-- WOP plan P2-F4 (reference-implementation working plan (not republished))
+- WOP plan P2-F4 (`docs/plans/WORKFLOW-PROTOCOL-WOP-PLAN.md`)
 - Spec corpus: `../README.md`
 - OpenAPI: `../api/openapi.yaml`
 - AsyncAPI: `../api/asyncapi.yaml`

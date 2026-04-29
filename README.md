@@ -2,7 +2,7 @@
 
 > **Status: FINAL v1.0 (2026-04-27).** Protocol contract is locked. Implementations validate against the conformance suite at their own cadence.
 
-> **Packages not yet published.** The published-package names (`@myndhyve/wop-client`, `@myndhyve/wop-conformance`, `wop-client`, Go SDK tag) are reserved but the v1.0.0 release is still in progress. Until then, install from source by cloning this repo. Tracking issue: see the project ROADMAP.
+> **Packages not yet published.** The published-package names (`@myndhyve/wop`, `@myndhyve/wop-conformance`, `wop-client`, `github.com/myndhyve/wop/sdk/go/v1`) are reserved but the v1.0.0 release is still in progress. Until then, install from source by cloning this repo. Tracking issue: see the project ROADMAP.
 
 > **Workflow Orchestration Protocol** — wire-level spec for declaring, executing, suspending, resuming, and observing multi-step workflows across hosts. Started 2026-04-26; v1.0 final 2026-04-27.
 

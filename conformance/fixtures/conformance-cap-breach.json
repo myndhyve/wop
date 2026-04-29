@@ -2,7 +2,7 @@
   "id": "conformance-cap-breach",
   "name": "Conformance: Cap Breach (recursion limit)",
   "version": "1.0.0",
-  "description": "Six-node noop chain. Run with `RunOptions.configurable.recursionLimit: 3` to trigger the per-run nodeExecutionCount breach at node 4 — verifies `cap.breached {kind: 'node-executions'}` emission + terminal `failed` with `error.code = 'recursion_limit_exceeded'`. Spec: spec/v1/run-options.md §recursionLimit + observability.md §cap.breached.",
+  "description": "Six-node noop chain. Run with `RunOptions.configurable.recursionLimit: 3` to trigger the per-run nodeExecutionCount breach at node 4 — verifies `cap.breached {kind: 'node-executions'}` emission + terminal `failed` with `error.code = 'recursion_limit_exceeded'`. Spec: docs/wop-spec/v1/run-options.md §recursionLimit + observability.md §cap.breached.",
   "nodes": [
     { "id": "n1", "typeId": "core.noop", "name": "N1", "position": { "x": 0,   "y": 0 }, "config": {}, "inputs": {} },
     { "id": "n2", "typeId": "core.noop", "name": "N2", "position": { "x": 200, "y": 0 }, "config": {}, "inputs": {} },

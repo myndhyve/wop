@@ -26,11 +26,17 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = join(__dirname, '..', '..', '..');
-const SPEC_V1_DIR = join(ROOT_DIR, 'spec', 'v1');
-const SCHEMAS_DIR = join(ROOT_DIR, 'schemas');
-const FIXTURES_DIR = join(ROOT_DIR, 'conformance', 'fixtures');
-const API_DIR = join(ROOT_DIR, 'api');
+const REPO_ROOT = join(__dirname, '..', '..', '..');
+// Layout-aware: the public repo at github.com/myndhyve/wop puts spec docs
+// under `spec/v1/`; the MyndHyve in-tree mirror at docs/wop-spec/v1/ keeps
+// spec docs and meta docs side-by-side. Detect by probing for spec/v1/.
+const V1_DIR = existsSync(join(REPO_ROOT, 'spec', 'v1'))
+  ? join(REPO_ROOT, 'spec', 'v1')
+  : REPO_ROOT;
+// Schemas, fixtures, API live at REPO_ROOT in both layouts.
+const SCHEMAS_DIR = join(REPO_ROOT, 'schemas');
+const FIXTURES_DIR = join(REPO_ROOT, 'conformance', 'fixtures');
+const API_DIR = join(REPO_ROOT, 'api');
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -159,25 +165,37 @@ describe('spec-corpus: AsyncAPI 3.1 spec is structurally valid', () => {
 });
 
 describe('spec-corpus: prose docs carry a Status: legend tag', () => {
-  // V1-FINAL-COMPLETION-PLAN.md is a release record, not a normative
-  // spec doc; it lives in spec/v1/ for proximity to the spec corpus
-  // but does not carry a Status: tag.
+  // META_DOCS aren't normative spec docs and don't carry the
+  // STUB / DRAFT / OUTLINE / FINAL maturity tag:
+  //   - README.md, CHANGELOG.md, CONTRIBUTING.md, QUICKSTART.md — entry/index docs
+  //   - CODE_OF_CONDUCT.md, GOVERNANCE.md, ROADMAP.md, SECURITY.md — project meta-docs
+  //   - PUBLISHING.md — operational/release docs
+  //   - V1-FINAL-COMPLETION-PLAN.md — release record
   const META_DOCS = new Set([
+    'README.md',
+    'CHANGELOG.md',
+    'CONTRIBUTING.md',
+    'CODE_OF_CONDUCT.md',
+    'GOVERNANCE.md',
+    'ROADMAP.md',
+    'SECURITY.md',
+    'PUBLISHING.md',
+    'QUICKSTART.md',
     'V1-FINAL-COMPLETION-PLAN.md',
   ]);
-  const proseFiles = readdirSync(SPEC_V1_DIR)
+  const proseFiles = readdirSync(V1_DIR)
     .filter((f) => f.endsWith('.md') && !META_DOCS.has(f))
     .sort();
 
   it('finds the expected prose doc set', () => {
-    // Spec README §Document index lists 11+ prose docs. If this drifts,
+    // Spec README §Document index lists 11 prose docs. If this drifts,
     // the README needs updating in the same PR that adds/removes a doc.
     expect(proseFiles.length).toBeGreaterThanOrEqual(11);
   });
 
   for (const file of proseFiles) {
     it(`${file} declares a Status: tag (STUB / DRAFT / OUTLINE / FINAL)`, () => {
-      const content = readFileSync(join(SPEC_V1_DIR, file), 'utf8');
+      const content = readFileSync(join(V1_DIR, file), 'utf8');
       // Match either ">**Status:" or "**Status:" near the top of file.
       expect(
         content,
@@ -188,7 +206,7 @@ describe('spec-corpus: prose docs carry a Status: legend tag', () => {
 });
 
 describe('spec-corpus: fixtures.json catalog matches fixtures.md', () => {
-  const fixturesDocPath = join(ROOT_DIR, 'conformance', 'fixtures.md');
+  const fixturesDocPath = join(REPO_ROOT, 'conformance', 'fixtures.md');
   const fixtureJsonFiles = readdirSync(FIXTURES_DIR)
     .filter((f) => f.endsWith('.json'))
     .map((f) => f.replace(/\.json$/, ''))

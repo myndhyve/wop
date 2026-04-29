@@ -74,15 +74,16 @@ interface RunEventLogIO {
 
 ### Reference implementations (non-normative)
 
-The engine package ships an in-memory reference implementation; the MyndHyve reference deployment ships two Firestore-backed implementations. All three are illustrative — third-party hosts MAY ship their own.
+The engine package ships two reference implementations (in-memory + SQLite); the MyndHyve reference deployment ships two Firestore-backed implementations. All four are illustrative — third-party hosts MAY ship their own.
 
 | Implementation | Use | Module |
 |---|---|---|
 | `InMemoryEventLogIO` | Tests + reference deployments without durability | Engine package (re-exported as `InMemoryEventLogIO`) |
+| `SqliteEventLogIO` | Durable single-node reference impl; zero-install on Node 22.5+ via `node:sqlite` | Engine package sub-path: `import { SqliteEventLogIO } from '@myndhyve/workflow-engine/sqlite'` |
 | `serverEventLogIO.ts` (Cloud Run) | MyndHyve reference deployment, Cloud Run durability | `services/workflow-runtime/src/serverEventLogIO.ts` (MyndHyve-specific) |
 | `browserEventLogIO.ts` (browser) | MyndHyve reference deployment, browser-side durability | `src/core/workflow/host/browserEventLogIO.ts` (MyndHyve-specific) |
 
-Both Firestore-backed implementations are MyndHyve-specific; the contract surface above is the normative part and is reusable for any backend.
+Both Firestore-backed implementations are MyndHyve-specific; the contract surface above is the normative part and is reusable for any backend. The SQLite adapter is **Node-only** (browser bundlers cannot resolve `node:sqlite`) and lives under a dedicated sub-path so it does not pollute the package's browser-safe surface.
 
 ---
 
@@ -154,6 +155,7 @@ interface PendingDoc {
 | Implementation | Use | Module |
 |---|---|---|
 | `InMemorySuspendIO` | Tests + reference deployments without durability | Engine package (re-exported as `InMemorySuspendIO`) |
+| `SqliteSuspendIO` | Durable single-node reference impl; zero-install on Node 22.5+ via `node:sqlite`; polling-based `watch()` (100ms default) | Engine package sub-path: `import { SqliteSuspendIO } from '@myndhyve/workflow-engine/sqlite'` |
 | Browser `firestoreSuspendIO.ts` | MyndHyve reference deployment, browser-side durability | `src/core/workflow/host/firestoreSuspendIO.ts` (MyndHyve-specific) |
 | Cloud Run `firestoreSuspendIO.ts` | MyndHyve reference deployment, Cloud Run durability | `services/workflow-runtime/src/firestoreSuspendIO.ts` (MyndHyve-specific) |
 
@@ -199,8 +201,8 @@ A storage adapter SHOULD:
 
 ## Future work
 
-- **Postgres reference implementation** — `pg`-backed adapter as a non-Firestore durable example. Tracked as a follow-on; the in-memory adapters cover tests + reference-deployment use cases until Postgres ships.
-- **SQLite reference implementation** — file-backed durable example for self-hosted deployments without a managed Firestore or Postgres. Lower-priority follow-on.
+- **Postgres reference implementation** — `pg`-backed adapter as a non-Firestore durable example for distributed deployments. Tracked as a follow-on. SQLite is the in-tree single-node durable reference today (covers self-hosted single-instance deployments); Postgres adds the distributed-write story (LISTEN/NOTIFY for change feeds, multi-writer concurrency).
+- ~~**SQLite reference implementation**~~ — **DONE 2026-04-29 (G8 phase 2)**. `SqliteEventLogIO` + `SqliteSuspendIO` ship under the engine package's `./sqlite` sub-path entry. Zero-install on Node 22.5+ via the built-in `node:sqlite` module. Contract tests at 36/36 passing.
 - **Adapter compliance suite** — shared vitest test suite that any third-party adapter can run to verify spec compliance. The in-memory adapter tests
   (`InMemoryEventLogIO.test.ts`, `InMemorySuspendIO.test.ts`) are the prototypes for this; extracting them into a parameterized harness is post-v1.0 ecosystem work.
 

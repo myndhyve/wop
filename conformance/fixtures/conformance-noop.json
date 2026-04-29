@@ -2,7 +2,7 @@
   "id": "conformance-noop",
   "name": "Conformance: Noop",
   "version": "1.0.0",
-  "description": "Cheapest run-lifecycle fixture. Single core.noop node; reaches `completed` within 5s. See spec/v1/conformance/fixtures.md.",
+  "description": "Cheapest run-lifecycle fixture. Single core.noop node; reaches `completed` within 5s. See docs/wop-spec/v1/conformance/fixtures.md.",
   "nodes": [
     {
       "id": "noop",

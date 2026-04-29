@@ -1,8 +1,12 @@
 {
-  "name": "@wop/client",
+  "name": "@myndhyve/wop",
   "version": "1.0.0",
-  "private": true,
   "description": "TypeScript reference SDK for WOP-compliant servers. FINAL v1.0 — first npm publication tracked as G10 phase 2 (see PUBLISHING.md).",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myndhyve/wop.git",
+    "directory": "sdk/typescript"
+  },
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,7 +17,7 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "src", "README.md"],
+  "files": ["dist", "src", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"

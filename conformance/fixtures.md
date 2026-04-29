@@ -281,7 +281,7 @@ Both items are blocked on coordination with the impl plan owner — see WOP plan
 
 ## `conformance-channel-ttl` (closes C3 — channel TTL reducer fold)
 
-> **Status: shipped 2026-04-28 (`@wop/conformance` 1.3.0 + reference impl).** Server-side `core.channelWrite` Core WOP node landed in `packages/workflow-engine/src/nodes/core/channelWrite.node.ts`; conformance scenario at `src/scenarios/channel-ttl.test.ts`.
+> **Status: shipped 2026-04-28 (`@myndhyve/wop-conformance` 1.3.0 + reference impl).** Server-side `core.channelWrite` Core WOP node landed in `packages/workflow-engine/src/nodes/core/channelWrite.node.ts`; conformance scenario at `src/scenarios/channel-ttl.test.ts`.
 
 - **Purpose**: verify the `append` reducer applies `ttlMs` filter at write time, dropping entries older than the cutoff.
 - **Topology**: 4 sequential `core.channelWrite` nodes targeting channel `events` with `ttlMs: 200`, separated by a `core.delay` of 300ms between writes 3 and 4. The 4th write fires after the TTL window has elapsed.

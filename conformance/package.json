@@ -1,18 +1,30 @@
 {
-  "name": "@wop/conformance",
-  "version": "1.6.0",
-  "private": true,
-  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.6.0) — first npm publication tracked as G10 phase 2 (see PUBLISHING.md).",
+  "name": "@myndhyve/wop-conformance",
+  "version": "1.7.0",
+  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.7.0) — first npm publication tracked as G10 phase 2 (see PUBLISHING.md). 1.7.0 adds vendor-neutral redaction scenarios (NFR-7).",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myndhyve/wop.git",
+    "directory": "conformance"
+  },
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "wop-conformance": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "src",
+    "fixtures",
+    "vitest.config.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "build:cli": "tsc",
+    "build:cli": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
     "cli": "tsx src/cli.ts"
   },
   "engines": {

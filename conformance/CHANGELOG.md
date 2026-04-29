@@ -1,8 +1,51 @@
-# `@wop/conformance` Changelog
+# `@myndhyve/wop-conformance` Changelog
 
 Minor releases against the unchanged WOP v1.0 protocol contract. New
 scenarios may ship as `1.X.0`; the protocol contract itself remains at
 v1.0 (no breaking changes here unless protocol moves to v2).
+
+## [1.7.0] — 2026-04-29
+
+Adds vendor-neutral redaction scenarios (NFR-7) — spec-side companion
+to in-tree redaction harnesses. Black-box assertions that any WOP-
+compliant server doesn't leak canary content via observable surfaces.
+
+### Added
+
+- **`src/lib/canaries.ts`** — vendor-neutral canary fixture set + leak
+  detector. 5 canary shapes (openai/anthropic/google/jwt-bearer/byok-
+  credential-ref) built via runtime string concatenation so static
+  secret scanners (TruffleHog, gitleaks) don't flag the file. Carries
+  the unique marker `CANARY-WOP-CONFORMANCE-NEVER-SECRET` so leaks are
+  unambiguously identifiable. Exports `findCanaryLeaks` +
+  `assertNoCanaryLeak` helpers.
+- **`src/scenarios/redaction.test.ts`** — 6 scenarios in 3 groups:
+  1. **Discovery shape contract** (always runs): `secrets` and
+     `aiProviders` advertisements are well-formed regardless of
+     `secrets.supported`. When `supported === true`, scopes MUST be
+     non-empty + `resolution === 'host-managed'`. `byok ⊆ supported`.
+  2. **Bearer-token redaction** (always runs): invalid Bearer canary
+     in `Authorization` header is not echoed in the 401 response body.
+     Tested across two canary shapes (jwt-bearer + byok-credential-ref)
+     plus a marker-only universal check.
+  3. **credentialRef echo control** (gated on `secrets.supported`):
+     canary planted in `configurable.ai.credentialRef` MUST NOT
+     appear in any RunEvent payload. Uses poll-based capture so the
+     scenario stays transport-agnostic. Trivially passes (skip-equiv)
+     when host advertises `secrets.supported: false`.
+
+### Spec references
+
+- `capabilities.md` §"Secrets" + NFR-7 — secrets MUST NOT reach event
+  logs / traces / errors / prompts / exports.
+- `capabilities.md` §"aiProviders" — credentialRef is opaque + host-
+  resolved; servers MUST NOT include the value in any RunEvent.
+- Reference impl: `services/workflow-runtime/src/__tests__/redaction/`
+  in MyndHyve carries the in-process companion harness covering
+  surfaces the conformance suite can't see (logger output, OTel attrs).
+
+Total at 1.7.0: 108 scenarios across 22 files (50 server-free + 53
+server-required + 5 placeholder).
 
 ## [1.6.0] — 2026-04-28
 

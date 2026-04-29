@@ -160,16 +160,14 @@ Common error codes:
 - `credential_unavailable` (G22) — a node declares `requiresSecrets[]` but the host doesn't advertise `Capabilities.secrets.supported = true`. The host fundamentally can't resolve secrets for this run. The run terminates `failed` and the offending node MUST NOT execute. `details.requirement` SHOULD carry the SecretRequirement shape; `details.capability` SHOULD carry `"secrets"` so machine readers can map to the missing capability section.
 - `internal_error` — unexpected server failure (no implementation details in `message`)
 
-## Non-normative: pre-WOP host route shapes
+## MyndHyve-specific deviations from the spec
 
-> **Non-normative.** This section describes a compatibility pattern, not a normative requirement. WOP-compliant servers SHOULD use the canonical paths above. Hosts whose surfaces predate WOP MAY layer host-private aliases on top of the canonical routes.
+The reference implementation's existing surfaces predate WOP and use a slightly different shape. New WOP-compliant deployments SHOULD use the spec'd paths above. The reference implementation MAY continue serving:
 
-Some hosts ship surfaces that predate WOP and use a slightly different shape — for example, scoping by a host-specific concept in the URL path. Those hosts MAY continue serving the legacy paths as aliases that map internally to the spec routes:
+- `/v1/canvas-types/{canvasTypeId}/runs` — adds canvas-type scoping in the path. WOP spec moves canvas-type out of the path; servers that want canvas-type filtering SHOULD use a query parameter (`?canvasTypeId=...`) or carry it on the workflow definition.
+- `/v1/canvas-types/{canvasTypeId}/manifest` — same shape as above.
 
-- `/v1/<host-scope>/{scopeId}/runs` — adds host-scope filtering in the path. WOP moves such scoping out of the path; servers that want filtering SHOULD use a query parameter (e.g., `?scope=...`) or carry the scope on the workflow definition.
-- `/v1/<host-scope>/{scopeId}/manifest` — same shape as above.
-
-The MyndHyve reference host uses this pattern for its existing `/v1/canvas-types/{canvasTypeId}/...` routes — see the host's documentation for the concrete realization.
+These canvas-typed routes MAY be served as aliases that map internally to the spec routes.
 
 ---
 

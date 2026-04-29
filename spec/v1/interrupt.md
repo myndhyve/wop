@@ -78,7 +78,7 @@ External systems resume an interrupt by calling `POST /v1/interrupts/{token}` (s
 
 ### `kind: "approval"`
 
-The canonical 5-action approval vocabulary, derived from production human-in-the-loop systems:
+The canonical 5-action approval vocabulary from MyndHyve's existing implementation, lifted into the spec:
 
 ```typescript
 interface ApprovalData {

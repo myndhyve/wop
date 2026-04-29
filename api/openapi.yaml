@@ -5,7 +5,7 @@ info:
   version: 1.0.0
   summary: REST surface for declaring, executing, suspending, resuming, and observing multi-step workflows.
   description: |
-    Canonical OpenAPI 3.1 specification for WOP-compliant servers. Generated from `spec/v1/rest-endpoints.md` and references the JSON Schemas in `schemas/`.
+    Canonical OpenAPI 3.1 specification for WOP-compliant servers. Generated from `docs/wop-spec/v1/rest-endpoints.md` and references the JSON Schemas in `docs/wop-spec/v1/schemas/`.
 
     See spec docs for semantics:
     - `auth.md` — API key + scope vocabulary

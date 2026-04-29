@@ -113,24 +113,24 @@ conformance/dist/cli.js --offline
 
 ---
 
-## Coordination with reference implementations
+## Coordination with the impl plan
 
-The v1.0 protocol contract is **locked**. Reference implementations (including the MyndHyve flagship host) validate themselves against `@wop/conformance` at their own cadence; new conformance scenarios ship as minor releases of the suite (`1.X.0`) against the unchanged v1.0 protocol.
+The reference implementation has its own internal plan (`docs/plans/WORKFLOW-PROTOCOL-IMPLEMENTATION-PLAN.md`) tracking impl-side phases (event log, RunStateMachine, capabilities, OTel). When a spec PR proposes a change that interacts with the impl:
 
-When a spec PR proposes a change that interacts with reference implementations:
+- **Cosmetic / additive** (new field, new event type as opt-in, new endpoint): merge spec PR independently. Impl will catch up.
+- **Breaking impl assumptions** (schema bump on existing event, new required field, removed field): coordinate via `WORKFLOW-PROTOCOL-WOP-PLAN.md` "Cross-cuts to impl plan" section. Add a `CC-N` entry. The impl plan owner approves before merge.
 
-- **Cosmetic / additive** (new field, new event type as opt-in, new endpoint): merge spec PR independently. Implementations catch up at their own cadence.
-- **Breaking impl assumptions** (schema bump on existing event, new required field, removed field): not allowed against v1.0. File as a v2.0 RFC per `GOVERNANCE.md` §"Spec change process".
+Cross-cuts currently tracked: CC-1 (recursionLimit invariant — partial), CC-2 (typed channels — deferred), CC-3 (OTel taxonomy — done), CC-4 (maxNodeExecutions — done).
 
 ---
 
 ## Process
 
-See `GOVERNANCE.md` for the full decision-making and spec-change process. Quick reference:
+The WOP spec doesn't yet have a formal committee. Until one exists:
 
-- **PRs**: opened against this repo. Merge bar follows the change-category rules in `GOVERNANCE.md` §"Spec change process" (one approval for editorial / non-normative; two approvals + RFC for normative additions; v2.0 RFC for breaking changes).
-- **Issues**: file using the issue templates at `.github/ISSUE_TEMPLATE/`. Bug reports include doc filename, section heading, the RFC 2119 requirement that's unclear or contradictory, and implementation impact.
-- **Backwards compat**: the v1.0 contract is locked. Breaking changes ship only as a future v2.0 in parallel.
+- **PRs**: opened against the implementation repo, labeled `wop-spec`. Merge bar is "two reviewers from different organizations" once the spec leaves DRAFT.
+- **Issues**: see `README.md` §Reporting issues — include doc filename, section heading, RFC 2119 requirement that's unclear or contradictory, and implementation impact.
+- **Backwards compat**: until v1.0 FINAL, breaking changes are allowed but MUST come with a CHANGELOG entry + a runbook section in `version-negotiation.md` describing migration.
 
 ---
 

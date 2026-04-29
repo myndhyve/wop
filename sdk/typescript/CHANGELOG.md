@@ -1,4 +1,4 @@
-# `@wop/client` Changelog
+# `@myndhyve/wop` Changelog
 
 ## [1.0.0] — 2026-04-27
 
@@ -18,4 +18,4 @@ Aligned with WOP spec v1.0 final. Pinned to v1.0.0 alongside the spec corpus tag
 - Webhook subscription endpoints (spec still firming).
 - Artifacts endpoints (signature unstable).
 - Auto-retry with exponential backoff (needs cross-impl agreement on retry policy).
-- Browser bundle (`@wop/client/browser`).
+- Browser bundle (`@myndhyve/wop/browser`).

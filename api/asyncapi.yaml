@@ -8,7 +8,7 @@ info:
     url: https://wop.dev/spec/v1/
   description: |
     Canonical AsyncAPI 3.0 specification for the WOP server's
-    Server-Sent Events surface. Formalizes `spec/v1/stream-modes.md`
+    Server-Sent Events surface. Formalizes `docs/wop-spec/v1/stream-modes.md`
     and references the run-event JSON Schema via `$ref` so external SDK
     authors can codegen typed consumers without re-reading the prose.
 
