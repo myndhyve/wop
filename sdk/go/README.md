@@ -18,7 +18,7 @@ import (
     "fmt"
     "log"
 
-    wopclient "github.com/myndhyve/wop/sdk/go/v1"
+    wopclient "github.com/myndhyve/wop/sdk/go"
 )
 
 func main() {
@@ -67,7 +67,7 @@ go test ./...   # tests are forthcoming; v0.1 ships scaffold only
 Once published, install will be:
 
 ```bash
-go get github.com/myndhyve/wop/sdk/go/v1
+go get github.com/myndhyve/wop/sdk/go
 ```
 
 ---

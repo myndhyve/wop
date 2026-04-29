@@ -35,7 +35,7 @@ All four are FINAL v1.0 at the source level — the spec contract is locked, the
 
 - The 3 SDKs (`@myndhyve/wop`, `wop-client`, `wopclient`) MUST track the spec major. A spec at v1.x always has SDKs at v1.x. Within a major, SDK patch versions float independently.
 - `@myndhyve/wop-conformance` independently bumps minors when scenarios are added/removed. Patch versions track bug fixes in scenario assertions.
-- Go module path includes the major (`/v1`) per Go convention. The v1 path is `github.com/myndhyve/wop/sdk/go/v1`; v2 will be `github.com/myndhyve/wop/sdk/go/v2`.
+- Go module path includes the major (`/v1`) per Go convention. The v1 path is `github.com/myndhyve/wop/sdk/go`; v2 will be `github.com/myndhyve/wop/sdk/go/v2`.
 
 ### Deprecation policy
 
@@ -87,9 +87,9 @@ Run before EVERY publish (manual or CI-driven). The checklist is a hard gate; on
 
 - [ ] `cd sdk/go && go vet ./...` clean.
 - [ ] `cd sdk/go && go test ./...` passes.
-- [ ] `go.mod` declares `go 1.22+` and the correct module path with `/v1` major suffix.
-- [ ] Tag the repo at `sdk/go/v1.0.0` (Go modules consume tags directly).
-- [ ] Verify discoverability: `go list -m github.com/myndhyve/wop/sdk/go/v1@v1.0.0` resolves after the tag is pushed.
+- [ ] `go.mod` declares `go 1.22+` and module path `github.com/myndhyve/wop/sdk/go` (no `/v1` suffix at v1.x.x; only v2+ uses the suffix).
+- [ ] Tag the repo at `sdk/go/v1.0.0` — Go requires the subdirectory prefix for non-root modules. (Just `v1.0.0` at the repo root WON'T work for a sub-module.)
+- [ ] Verify discoverability: `curl -sI https://proxy.golang.org/github.com/myndhyve/wop/sdk/go/@v/v1.0.0.info` returns 200 after tag push (cache warm-up ~5 min).
 
 ---
 

@@ -15,7 +15,7 @@ set -euo pipefail
 
 SPEC_ROOT="."
 EXPECTED_REPO="github.com/myndhyve/wop"
-EXPECTED_GO_MODULE="${EXPECTED_REPO}/sdk/go/v1"
+EXPECTED_GO_MODULE="${EXPECTED_REPO}/sdk/go"
 EXPECTED_NPM_SCOPE="@myndhyve"
 fail=0
 

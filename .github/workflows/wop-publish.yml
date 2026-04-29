@@ -107,7 +107,7 @@ jobs:
       - name: Verify Go module discoverability
         run: |
           echo "Go module is tag-driven; the v$VERSION tag has been pushed."
-          echo "Consumers can: go get github.com/myndhyve/wop/sdk/go/v1@v$VERSION"
+          echo "Consumers can: go get github.com/myndhyve/wop/sdk/go@v$VERSION"
           echo "Cache warm-up may take ~5min for proxy.golang.org."
         env:
           VERSION: ${{ github.ref_name }}
