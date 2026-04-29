@@ -295,7 +295,8 @@ const eventLog = new EventLog(io, { engineVersion: 1 });
 
 - [`README.md`](./README.md) — full document index with status legend.
 - [`CHANGELOG.md`](./CHANGELOG.md) — version history including the post-v1.0 ecosystem additions.
-- [`V1-FINAL-COMPLETION-PLAN.md`](./V1-FINAL-COMPLETION-PLAN.md) — release record + reference-deployment status.
-- [WOP plan](../../plans/WORKFLOW-PROTOCOL-WOP-PLAN.md) — strategic roadmap (in-tree).
+- [`spec/v1/V1-FINAL-COMPLETION-PLAN.md`](./spec/v1/V1-FINAL-COMPLETION-PLAN.md) — release record + reference-deployment status.
+- [`ROADMAP.md`](./ROADMAP.md) — v1.0 stable / v1.X minor / post-v1.0 ecosystem.
+- [`GOVERNANCE.md`](./GOVERNANCE.md) — decision-making and spec change process.
 
-Have a question? Open an issue at the spec corpus repo. Spec contributions go through `CONTRIBUTING.md`.
+Have a question? Open an issue using the templates at `.github/ISSUE_TEMPLATE/`. Spec contributions go through `CONTRIBUTING.md`.

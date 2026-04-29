@@ -40,8 +40,10 @@ For webhook delivery integrity (HMAC signing, replay prevention), see
 ## Coordinated disclosure
 
 Reporters SHOULD allow at least 90 days from initial report before
-publishing details. The advisory team will acknowledge receipt within
-5 business days and provide a remediation timeline within 14 days.
+publishing details. The advisory team will acknowledge receipt and
+provide a remediation timeline as quickly as resourcing allows. The
+project is in early incubation; firm response-time SLAs will be
+added once a maintainer rotation is in place.
 
 If the vulnerability is being actively exploited, contact the host
 repository owner directly via the advisory channel above with the

@@ -8,7 +8,7 @@ The full text is published at the URL above and is licensed under [CC BY 4.0](ht
 
 Report unacceptable behavior to **conduct@myndhyve.com**.
 
-Reports are read by the maintainers listed in [`GOVERNANCE.md`](./GOVERNANCE.md). All reports are kept confidential. Reporters will receive an acknowledgment within 72 hours and a resolution summary within 14 days.
+Reports are read by the maintainers listed in [`GOVERNANCE.md`](./GOVERNANCE.md). All reports are kept confidential. Maintainers will acknowledge receipt and follow up with a resolution as quickly as the project's resourcing allows. The project is in early incubation; firm response-time SLAs will be added to this document once a maintainer rotation is in place.
 
 ## Enforcement
 

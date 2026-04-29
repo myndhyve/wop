@@ -276,13 +276,6 @@ The interaction between the four version axes determines deploy ordering. A WOP-
 
 - `auth.md` — auth model
 - `rest-endpoints.md` — endpoint catalog
-- `capabilities.md` — `/.well-known/wop` capability declaration (premature outline)
-- Reference impl:
-  - Engine version: `src/core/workflow/engine/engineVersion.ts:32` (`CURRENT_ENGINE_VERSION = 1`)
-  - Per-run event-log: `src/core/workflow/services/workflowRunDocumentTypes.ts:219` (`CURRENT_EVENT_LOG_SCHEMA_VERSION = 2`)
-  - Per-event schema: `packages/workflow-engine/src/protocol/EventLog.ts` (`EVENT_LOG_SCHEMA_VERSION = 1`)
-  - Pinning: `packages/workflow-engine/src/protocol/Versioning.ts` (PR 4.1)
-  - Legacy detection: `src/core/workflow/utils/isLegacyRun.ts`
-- Reference runbooks (this WOP spec borrows the deploy-ordering matrix):
-  - `docs/runbooks/WORKFLOW-VERSION-COMPATIBILITY.md` — full compatibility tables (PR 4.2)
-  - `docs/runbooks/WORKFLOW-PROTOCOL-MIGRATION.md` — operational how-to (PR 4.3)
+- `capabilities.md` — `/.well-known/wop` capability declaration
+
+Hosts implementing version-negotiation should also publish their own deploy-ordering matrix (engine version vs event-log schema vs API surface) and operational migration runbook for skew transitions. The MyndHyve reference host's runbooks are a worked example — see the host's documentation, not this repository.

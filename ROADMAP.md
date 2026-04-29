@@ -67,6 +67,7 @@ Additional SDKs ship only when there is concrete demand. The current set (TS, Py
 | MyndHyve reference host conformance certification | In progress | Tracked in MyndHyve-internal phased delivery plan. |
 | Second independent host implementation | Not started | Needed to graduate to working-group governance per `GOVERNANCE.md`. |
 | Third-party node-pack catalog | Not started | Depends on hosted registry. |
+| Source-of-truth model for spec corpus | Open | The corpus currently lives in two places: (a) this public repo at `myndhyve/wop`, (b) the MyndHyve repo at `docs/wop-spec/v1/`. A stop-gap sync script lives at `scripts/sync-from-myndhyve.sh`. The long-term model — submodule, monorepo split, or delete-the-in-tree-copy — is undecided. Drift between the two copies is a real risk; the decision should land before any substantive spec change. |
 
 ## What this roadmap does not commit to
 

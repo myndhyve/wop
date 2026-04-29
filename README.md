@@ -146,9 +146,33 @@ Current state: 12 prose specs FINAL v1.0 · 10 JSON Schemas · 82 conformance sc
 - **2026-04-26** — TypeScript reference SDK scaffold (P2-F3) at `sdk/typescript/`. Hand-authored thin client for the canonical REST surface + async-iterable SSE consumer. Zero runtime deps. Builds cleanly with strict TS.
 - **2026-04-26** — Conformance suite v0.6 lands replay/fork (`POST /v1/runs/{runId}:fork`), version negotiation (RunEventDoc shape + sequence monotonicity + forward-compat events/poll tolerance), AND a spec-corpus self-validator that catches drift across schemas/openapi/asyncapi/fixtures/prose-status without a server. Total now **71 scenarios across 15 files (36 server-free + 35 server-required)**.
 
-## Related
+## Where to go next
+
+If you're new to WOP:
+
+- **[`QUICKSTART.md`](./QUICKSTART.md)** — five-minute hands-on tour: discovery, run creation, streaming.
+- **[`spec/v1/`](./spec/v1/)** — the 15 normative prose specs. Start with `rest-endpoints.md` and `auth.md`.
+- **[`schemas/`](./schemas/)** — JSON Schemas (Draft 2020-12). Compile with Ajv2020.
+
+If you're implementing a host:
+
+- **[`api/openapi.yaml`](./api/openapi.yaml)** + **[`api/asyncapi.yaml`](./api/asyncapi.yaml)** — machine-readable contracts.
+- **[`spec/v1/V1-FINAL-COMPLETION-PLAN.md`](./spec/v1/V1-FINAL-COMPLETION-PLAN.md)** — v1.0 release record + the six post-v1.0 conformance triggers (non-normative).
+- **[`conformance/`](./conformance/)** — `@wop/conformance` test suite. Run against your endpoint to verify spec compliance.
+
+If you're consuming WOP from an application:
+
+- **[`sdk/typescript/`](./sdk/typescript/)** — `@wop/client` (npm).
+- **[`sdk/python/`](./sdk/python/)** — `wop-client` (PyPI).
+- **[`sdk/go/`](./sdk/go/)** — `github.com/myndhyve/wop/sdk/go`.
+
+Project meta:
 
 - **[`ROADMAP.md`](./ROADMAP.md)** — v1.0 stable / v1.X minor / post-v1.0 ecosystem.
 - **[`GOVERNANCE.md`](./GOVERNANCE.md)** — maintainer model, decision-making, and spec change process.
-- **[`spec/v1/V1-FINAL-COMPLETION-PLAN.md`](./spec/v1/V1-FINAL-COMPLETION-PLAN.md)** — v1.0 release record (non-normative).
-- **MyndHyve reference host** — the flagship production host built on top of WOP. Architectural details live in the host's own repository, not this one.
+- **[`CONTRIBUTING.md`](./CONTRIBUTING.md)** — how to propose changes, CI gates, change categories.
+- **[`SECURITY.md`](./SECURITY.md)** — coordinated disclosure process.
+
+Reference implementations:
+
+- **MyndHyve** — flagship production host built on top of WOP. Architectural details live in MyndHyve's own repository, not this one. MyndHyve appears throughout the spec corpus only as a non-normative example of a real-world host implementing the protocol.

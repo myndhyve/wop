@@ -1,3 +1,6 @@
+# NOTE: The Discussions link below requires GitHub Discussions to be enabled
+# in repo Settings → Features. If Discussions is off, the link 404s; either
+# enable Discussions or remove the entry until it's enabled.
 blank_issues_enabled: false
 contact_links:
   - name: Question or discussion

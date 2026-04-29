@@ -14,9 +14,15 @@ The split mirrors the W3C / IETF practice of permissive code + permissive
 spec text, so implementers can vendor schemas without copyleft concerns
 and translators can adapt prose without per-language relicensing.
 
-Trademarks: "WOP" and "Workflow Orchestration Protocol" are not registered
-trademarks. Implementations are encouraged to describe themselves as
-"WOP-compliant" when they pass the published conformance suite version.
+Trademarks: "WOP" and "Workflow Orchestration Protocol" are not currently
+registered trademarks. The project's intent is that implementations which
+pass a published conformance suite version may describe themselves as
+"WOP-compliant" — the term is descriptive of conformance status, not a
+quality mark endorsed by any specific entity. The trademark posture and
+associated usage policy are subject to legal review and may evolve before
+the first vendor-neutral org transition (see GOVERNANCE.md and ROADMAP.md).
+If the maintainer set later registers a trademark, prior good-faith use
+will be honored under a published transition policy.
 
 Affiliation: This project is independently authored and is not affiliated
 with, endorsed by, or sponsored by Anthropic, OpenAI, Google, or any other

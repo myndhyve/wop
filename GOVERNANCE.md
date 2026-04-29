@@ -18,13 +18,13 @@ Anyone who opens an issue, sends a pull request, files a conformance report, or 
 
 ### Reviewers
 
-Contributors with merge rights on a defined area of the corpus (e.g., a single SDK, a spec section). Appointed by maintainers. Listed in the repository's `CODEOWNERS` file once that file lands.
+Contributors with merge rights on a defined area of the corpus (e.g., a single SDK, a spec section). Appointed by maintainers. Listed in [`.github/CODEOWNERS`](./.github/CODEOWNERS); per-area reviewers are added as the maintainer set grows.
 
 ### Maintainers
 
 Contributors with merge rights across the corpus and authority to cut releases. The initial maintainer set is:
 
-- **David Tufts** (@davidtufts) — initial steward, MyndHyve
+- **David Tufts** (@davidscotttufts) — initial steward, MyndHyve
 
 New maintainers are appointed by lazy consensus among existing maintainers (see "Decision making" below). Maintainers are expected to:
 
@@ -70,7 +70,7 @@ A release requires: passing CI on `main`, a CHANGELOG entry, and a maintainer cu
 
 ## Security
 
-Security disclosures follow the process documented in `SECURITY.md`. Reports are received by the maintainer set and acknowledged within 72 hours. Embargoed coordinated disclosure is the default for vulnerabilities that affect deployed implementations.
+Security disclosures follow the process documented in `SECURITY.md`. Reports are received by the maintainer set; acknowledgment timing is governed by `SECURITY.md` (firm SLAs are deferred until a maintainer rotation is in place). Embargoed coordinated disclosure is the default for vulnerabilities that affect deployed implementations.
 
 ## Trademark
 

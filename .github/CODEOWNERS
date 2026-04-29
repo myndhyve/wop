@@ -1,0 +1,8 @@
+# WOP CODEOWNERS
+#
+# Default review for all paths goes to the lead maintainer until the
+# project's maintainer set grows past one. Per-area reviewers will be
+# added here as the project meets the working-group thresholds in
+# GOVERNANCE.md.
+
+* @davidscotttufts

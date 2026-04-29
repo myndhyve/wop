@@ -34,7 +34,12 @@ The spec does not prescribe the visible prefix; reference implementations are en
 - Live keys from sandbox/test keys (e.g., `live_` vs `test_`)
 - The implementation's own keys from those of other systems (e.g., a vendor identifier)
 
-Example (the MyndHyve reference host): two-prefix scheme distinguishing live and sandbox keys, bcrypt-hashed, stored under a host-private collection. Other hosts MAY use any scheme they prefer.
+Example schemes from real and hypothetical hosts:
+
+- **MyndHyve reference host** — two-prefix scheme distinguishing live and sandbox keys, bcrypt-hashed, stored under a host-private collection.
+- **Hypothetical `acme.example` host** — single `acme_` prefix with embedded environment hint (`acme_prod_`, `acme_staging_`), Argon2id-hashed, stored in a managed secrets vault.
+
+Hosts MAY use any scheme they prefer; the prefix is purely operational.
 
 #### Scopes
 
