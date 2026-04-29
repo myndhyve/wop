@@ -176,16 +176,38 @@ Activation steps when ready:
 
 ---
 
+## `@wop/protocol` decision
+
+**Decision (2026-04-29): not publishing as a separate package.**
+
+The question was whether the wire-format types (`Capabilities`, `RunSnapshot`, `RunEventDoc`, etc.) should ship as a standalone `@wop/protocol` npm package alongside the SDKs.
+
+The decision is to skip:
+
+- **The schemas are already the canonical contract.** `api/openapi.yaml` (OpenAPI 3.1) and `schemas/*.json` (JSON Schemas) ARE the wire format. Each SDK hand-mirrors them in its own `types.{ts,py,go}` for ergonomics; the schemas remain authoritative.
+- **A standalone TS types package would create a second source of truth.** It could drift from the canonical schemas and from the per-SDK mirrors. Less surface area to keep aligned.
+- **Non-TS consumers don't benefit.** Python and Go consumers already hand-mirror in their language; extracting TS types in a separate package doesn't help them.
+- **Per the host's Guiding Rule #2** ("treat package lists as capability domains, not npm packages"), the bar to extract is a concrete external consumer with a concrete reason. None exists today.
+
+If a third-party tool later needs codegen-friendly types (e.g., a TS code generator that wants to import them without the runtime), the path is:
+
+1. Verify the JSON Schemas alone aren't sufficient (they usually are — `json-schema-to-typescript` etc.).
+2. If they aren't, extract `@wop/protocol` at that point — type-only, compiled from the JSON Schemas at build time, no hand-mirroring.
+
+Until then, types ship as part of `@wop/client` and consumers can tree-shake the runtime if they only want types. Downstream consumers (host implementations, build pipelines) that need the OpenAPI/AsyncAPI YAML files at build time can vendor them via `@wop/conformance` (which already ships fixtures + schemas; adding `api/` to its `package.json#files` is a 1-line change).
+
+---
+
 ## In-repo-only artifacts (no plan to publish)
 
 Some artifacts in the spec corpus are documentation-only and explicitly NOT for public registry publication:
 
-- The 15 prose spec docs (`auth.md`, `rest-endpoints.md`, etc.) — distributed via the repo's docs site (G12 phase 2) when ready.
-- The JSON Schemas (`schemas/*.json`) — referenced by URL from the published artifacts; the spec-corpus repo IS the authoritative source.
+- The 15 prose spec docs (`auth.md`, `rest-endpoints.md`, etc.) — distributed via the repo's docs site when ready.
+- The JSON Schemas (`schemas/*.json`) — referenced by URL from the published artifacts; this repo IS the authoritative source.
 - The conformance fixtures (`conformance/fixtures/`) — pulled into `@wop/conformance` at build time.
-- The OpenAPI + AsyncAPI YAMLs — referenced by URL.
+- The OpenAPI + AsyncAPI YAMLs — referenced by URL; also vendored into `@wop/conformance` for build-time consumers.
 
-These artifacts will be hosted at a public location (probably `wop.dev/spec/v1/`) under G12 phase 2; G10 doesn't need to re-publish them.
+These artifacts will be hosted at a public docs site eventually; the canonical source remains this repo.
 
 ---
 
