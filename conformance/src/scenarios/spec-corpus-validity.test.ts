@@ -207,10 +207,18 @@ describe('spec-corpus: prose docs carry a Status: legend tag', () => {
 
 describe('spec-corpus: fixtures.json catalog matches fixtures.md', () => {
   const fixturesDocPath = join(REPO_ROOT, 'conformance', 'fixtures.md');
-  const fixtureJsonFiles = readdirSync(FIXTURES_DIR)
-    .filter((f) => f.endsWith('.json'))
-    .map((f) => f.replace(/\.json$/, ''))
-    .sort();
+  const PACK_MANIFEST_FIXTURES_DIR = join(FIXTURES_DIR, 'pack-manifests');
+  // Top-level workflow fixtures + pack-manifest fixtures from the
+  // sub-directory. Both are documented in fixtures.md so the regex scan
+  // below MUST cover both.
+  const fixtureJsonFiles = [
+    ...readdirSync(FIXTURES_DIR)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => f.replace(/\.json$/, '')),
+    ...readdirSync(PACK_MANIFEST_FIXTURES_DIR)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => f.replace(/\.json$/, '')),
+  ].sort();
 
   it('every fixture id mentioned in fixtures.md has a corresponding JSON', () => {
     const doc = readFileSync(fixturesDocPath, 'utf8');

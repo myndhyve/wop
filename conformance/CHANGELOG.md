@@ -4,6 +4,115 @@ Minor releases against the unchanged WOP v1.0 protocol contract. New
 scenarios may ship as `1.X.0`; the protocol contract itself remains at
 v1.0 (no breaking changes here unless protocol moves to v2).
 
+## [1.10.0] — 2026-04-30
+
+Pack-registry coverage closes the Q6 spec/conformance gap. The read
+surface is testable cross-implementation (vendor-neutral discovery
+shape); the publish surface is documented as `it.todo()` placeholders
+pending a future test-mode capability.
+
+### Added
+
+- **`src/scenarios/pack-registry.test.ts`** — 8 server-free / read-only
+  scenarios covering `node-packs.md` §"Registry HTTP API":
+  1. `GET /v1/packs/-/search` returns a WOP-shaped response (or registry
+     is absent — hosts are NOT required to ship a pack registry).
+  2. `GET /v1/packs/{nonexistent}` returns 404 with WOP error envelope.
+  3. `GET /v1/packs/{nonexistent}/-/{version}.json` returns 404.
+  4. `GET /v1/packs/{nonexistent}/-/{version}.sig` returns 404
+     `signature_not_available` — the canonical code per the
+     intentionally-indistinguishable four-case contract (missing /
+     yanked / unsigned / storage-unwired).
+  5. `GET /v1/packs/{bad-name}/-/{version}.json` returns 400
+     `invalid_pack_name`.
+  6. `GET /v1/packs/{name}/-/{bad-version}.json` returns 400
+     `invalid_version`.
+  7. Catalog response shape — `GET /v1/packs/{name}` returns
+     `{name, versions, dist-tags?}` with reverse-DNS names + SemVer
+     2.0.0 version keys.
+  8. Keychain shape — `GET /v1/packs/{name}/-/keychain` returns
+     `{keys: [...]}` with `kid` / `algorithm` / `publicKey` per entry
+     when present (signing is optional per `registry-operations.md`).
+
+  Registry presence is detected once via a probe on
+  `GET /v1/packs/-/search?q=`; absent registries trivially-pass the
+  scenarios (matching the policies/redaction precedent).
+
+- **`src/scenarios/pack-registry-publish.test.ts`** — 25 `it.todo()`
+  placeholders documenting the 19-code PUT publish error catalog +
+  unpublish-window contract + signature endpoint pairing across 7
+  describe blocks (URL/scope · body shape · tarball extraction ·
+  manifest contents · authorization+conflict · unpublish window ·
+  signature endpoint pairing). Scenarios become runnable when a
+  spec-defined test-mode `/v1/packs-test/*` namespace lands.
+
+- **`fixtures/pack-manifests/pack-private-example.json`** — canonical
+  `private.<host>.*`-scoped pack manifest fixture. Validates server-
+  free against `node-pack-manifest.schema.json` and asserts the
+  wop@1.10.0 widened reverse-DNS pattern accepts the `private` scope.
+
+- **`src/scenarios/fixtures-valid.test.ts`** — extended with a
+  `node-pack-manifest schema validity` describe block. Auto-discovers
+  fixtures in `fixtures/pack-manifests/` and validates each against
+  `node-pack-manifest.schema.json`. Also pins that at least one
+  fixture exercises the `private.*` scope (regression guard against
+  schema-pattern narrowing).
+
+- **`fixtures.md`** — new "Pack-manifest fixtures" section documenting
+  the sub-directory's purpose (schema-level proof points, NOT seeded
+  into a server).
+
+### Why placeholders for publish
+
+  The publish path is gated on `packs:publish` scope (see `auth.md`)
+  plus a binary tarball upload. Round-trip scenarios from a black-box
+  suite would either:
+    1. Require the suite's `WOP_API_KEY` to carry super-admin / publish
+       scope on the host under test — gives the suite the ability to
+       stomp on the real catalog. NOT acceptable for v1.
+    2. Require a host-provided test-mode `/v1/packs-test/*` namespace
+       that mirrors the real surface but writes to an isolated
+       catalog. This surface doesn't exist in the spec yet.
+
+  Until option 2 is specified, the placeholders document the error-
+  code contract so they become runnable when the surface lands. The
+  reference impl carries the in-process round-trip coverage at
+  `services/workflow-runtime/src/routes/__tests__/packs.test.ts`.
+
+### Spec references
+
+- `node-packs.md` §"Registry HTTP API" — 6 read endpoints + PUT publish
+  + DELETE unpublish + GET `.sig` (added 2026-04-30, this release
+  window) + 19-code PUT error catalog (added 2026-04-30).
+- `node-packs.md` §"Naming" — `private.<host>.*` scope reserved (added
+  2026-04-30, this release window). Public registries (`packs.wop.dev`)
+  MUST refuse `private.*` and `local.*`.
+- `registry-operations.md` §"Signing keychain" — keychain endpoint
+  shape.
+- `schemas/node-pack-manifest.schema.json` — pattern widened from
+  `^(core|vendor|community)\.[a-z]...` to
+  `^(core|vendor|community|private)\.[a-z]...` (additive — every pack
+  that validated before still validates).
+- `auth.md` §"`packs:publish` scope" — auth surface for publish.
+
+### Counts
+
+Direct additions in 1.10.0:
+- **+8 read scenarios** (`pack-registry.test.ts`) — all 8 trivially-pass
+  when the host doesn't ship a registry (probe on
+  `GET /v1/packs/-/search` is the gate); under presence, all are
+  runnable discovery-shape contracts.
+- **+25 placeholder scenarios** (`pack-registry-publish.test.ts`) —
+  document the 19-code PUT publish error catalog + unpublish-window +
+  `.sig` pairing across 7 describe blocks.
+- **+3 server-free scenarios** (`fixtures-valid.test.ts` pack-manifest
+  describe block) — fixture-discovery, per-file schema validation, and
+  the `private.*` widened-pattern regression pin.
+
+26 files total (was 24 at 1.9.0; +2 new). Run `npx vitest run` to see
+the live count for the host under test — gating means total runnable
+varies by host capability surface.
+
 ## [1.9.0] — 2026-04-30
 
 §7 drift audit closure for Q7 (approval payload). Adds vendor-neutral

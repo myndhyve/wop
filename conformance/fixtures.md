@@ -341,6 +341,18 @@ Each JSON is a valid `WorkflowDefinition` per `../schemas/workflow-definition.sc
 
 ---
 
+## Pack-manifest fixtures
+
+The `fixtures/pack-manifests/` sub-directory holds canonical pack manifests used as schema-level proof points (validated server-free against `../schemas/node-pack-manifest.schema.json`). They are NOT seeded into a server — they exist to assert the canonical schema accepts each documented pack-name scope.
+
+| Fixture | `name` | Purpose |
+|---|---|---|
+| `pack-private-example` | `private.example-host.example-tools` | Asserts the wop@1.10.0 widened pattern accepts the `private.<host>.*` scope reserved for host-internal registries. |
+
+Pack-manifest fixtures are exercised by the server-free `fixtures-valid.test.ts` scenarios — adding one runs the schema validator against it automatically.
+
+---
+
 ## Open spec gaps
 
 | # | Gap | Owner |
