@@ -159,6 +159,7 @@ The full `GET /.well-known/wop` response. Everything beyond the in-package shape
 | `secrets.resolution` | `string` | **(future)** | G22 — currently always `"host-managed"`. Reserved for future modes (e.g., `"client-attached"` for clients that pass credentials inline; out of scope for v1.x). |
 | `aiProviders.supported` | `string[]` | **(future)** | G22 — providers the host's AI proxy can route to (`anthropic`, `openai`, `gemini`, etc.). |
 | `aiProviders.byok` | `string[]` | **(future)** | G22 — subset of `aiProviders.supported` for which BYOK is permitted. Empty array → host serves all callers via platform-managed keys; clients MUST NOT send `ai.credentialRef` for non-BYOK providers. |
+| `aiProviders.policies` | object | **(future)** | G22 — host-side policy enforcement modes (`disabled` / `optional` / `required` / `restricted`), resolution scopes, and the wire-format error code returned on denial. Omitted → no enforcement. See §"`aiProviders.policies`" below. |
 
 ### `configurable`
 
@@ -239,6 +240,51 @@ See `packages/workflow-engine/src/protocol/RuntimeCapabilityRegistry.ts` for the
 - `RunOptions.configurable.ai.credentialRef` — opaque host-issued reference to a stored secret (must reference a credential of a provider in `byok`).
 
 **Server semantics.** Servers reject `ai.credentialRef` for providers NOT in `byok` with `credential_forbidden`. Servers reject unknown `provider` ids with `validation_error`.
+
+### `aiProviders.policies` (**(future)** — G22)
+
+`(future)` — additive companion to `aiProviders`. Lets a host advertise which **policy modes** it implements for per-provider gating. Hosts that omit this field implement no enforcement (clients see only `optional` semantics).
+
+```json
+"aiProviders": {
+  "supported": ["anthropic", "openai", "gemini"],
+  "byok": ["anthropic", "openai"],
+  "policies": {
+    "modes": ["disabled", "optional", "required", "restricted"],
+    "scopes": ["workspace", "project", "canvas-type"],
+    "errorCode": "provider_policy_denied"
+  }
+}
+```
+
+**Field shape:**
+
+- `modes` (string array, subset of `["disabled", "optional", "required", "restricted"]`) — declares the policy modes this host can enforce. A host MAY support a subset (e.g., `["optional", "required"]`) — clients MUST tolerate any subset.
+- `scopes` (string array, optional) — declares the resolution layers the host evaluates when computing the effective policy for a request. Conventional ids: `workspace`, `project`, `canvas-type`. Order is host-defined; the host MUST document its precedence rules.
+- `errorCode` (string, optional, defaults to `provider_policy_denied`) — the wire-format error code returned when policy enforcement denies a request. Reserved for hosts that need a vendor-prefixed alias.
+
+**The four modes** (host-side enforcement, opaque to the engine):
+
+| Mode | Meaning | Pre-dispatch behavior |
+|---|---|---|
+| `disabled` | Provider MUST NOT be used at all. | Reject before LLM call with `provider_policy_denied` (`reason: "disabled"`). |
+| `optional` | No restriction. Default behavior; equivalent to no policy. | Permit. |
+| `required` | Provider MAY only be used when the caller supplies BYOK credentials. | Reject when `RunOptions.configurable.ai.credentialRef` is absent (`reason: "byok_required"`). |
+| `restricted` | Provider use is limited to an allowlist of model patterns. | Reject when the requested model does not match any wildcard in `allowedModels` (`reason: "model_not_allowed"`). |
+
+**`allowedModels`** is the per-policy companion field for `restricted` mode — a list of glob patterns matched against `RunOptions.configurable.ai.model`. Hosts MUST treat a `restricted` policy with no `allowedModels` as fail-closed (`reason: "restricted_no_allowlist"`). The shape of stored policy documents (per-workspace / per-project / per-canvas-type) is host-internal and not part of the wire protocol.
+
+**Wire-format error.** When policy enforcement denies a request, the host MUST respond with the `errorCode` advertised above (default `provider_policy_denied`) and SHOULD include a machine-readable `reason` field with one of `["disabled", "byok_required", "model_not_allowed", "restricted_no_allowlist"]`. The error MUST NOT echo the resolved policy document — only the *decision*. This shape applies whether the denial surfaces as an HTTP error (REST), a JSON-RPC error (MCP), or a stream chunk's `errorCode` (streaming AI responses).
+
+**Resolver behavior.**
+
+- A host MAY layer policy resolution across multiple scopes (workspace → project → canvas-type). The effective policy is the host's deterministic merge of layer outputs; precedence is host-defined and SHOULD be documented per-deployment.
+- If the resolver itself is unavailable (network outage, storage failure), hosts SHOULD fail-open to `optional` rather than fail-closed — denying ALL requests during resolver outage breaks the runbook unrecoverably.
+- The single exception is a `restricted` policy that resolved successfully but contains an empty/missing `allowedModels` — that's a misconfigured policy, not an outage, and MUST fail-closed.
+
+**Audit emission.** Hosts SHOULD emit a per-decision audit event (host-internal taxonomy; conventional name `policy.decision`) carrying the resolved policy + which scope-layer supplied each field. The exact payload shape is host-internal and NOT part of the wire protocol — clients learn the *outcome* through the `provider_policy_denied` error, not by subscribing to audit events.
+
+**Backward compat.** Clients MUST tolerate the field's absence. A host that omits `policies` is equivalent to one that advertises `{"modes": ["optional"]}` and never returns `provider_policy_denied`.
 
 ### `observability`
 

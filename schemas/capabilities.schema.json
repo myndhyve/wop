@@ -137,6 +137,30 @@
           "items": { "type": "string", "minLength": 1 },
           "uniqueItems": true,
           "description": "Subset of `supported` for which BYOK is permitted. Empty array → all calls use platform-managed keys; non-empty → clients MAY pass `ai.credentialRef` in `RunOptions.configurable` for matching providers."
+        },
+        "policies": {
+          "type": "object",
+          "description": "(future) G22 — host-side policy enforcement modes for per-provider gating. Omitted → no enforcement; clients see only `optional` semantics. See `capabilities.md` §`aiProviders.policies`.",
+          "properties": {
+            "modes": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["disabled", "optional", "required", "restricted"] },
+              "uniqueItems": true,
+              "description": "Subset of policy modes this host can enforce. `disabled` = provider may not be used; `optional` = no restriction (default); `required` = BYOK required; `restricted` = model must match the policy's `allowedModels` glob list. Hosts MAY support a subset; clients MUST tolerate any subset."
+            },
+            "scopes": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true,
+              "description": "Resolution layers the host evaluates. Conventional ids: `workspace`, `project`, `canvas-type`. Precedence is host-defined and SHOULD be documented per-deployment."
+            },
+            "errorCode": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Wire-format error code returned on denial. Defaults to `provider_policy_denied`. Reserved for hosts that need a vendor-prefixed alias."
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

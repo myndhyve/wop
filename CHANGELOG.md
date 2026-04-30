@@ -45,6 +45,37 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-04-30 — `aiProviders.policies` capability (G22 follow-on)
+
+Documents the four-mode provider-policy taxonomy that hosts MAY enforce
+to gate AI provider use per-request: `disabled` / `optional` / `required`
+/ `restricted`. Additive, backward-compatible — hosts that omit the
+field implement no enforcement and clients see only `optional`
+semantics.
+
+- **`spec/v1/capabilities.md`** — new `### aiProviders.policies` section
+  inside the existing `aiProviders` block. Defines the four modes,
+  their pre-dispatch behavior, the wire-format error code
+  (`provider_policy_denied`), the four canonical denial reasons
+  (`disabled` / `byok_required` / `model_not_allowed` /
+  `restricted_no_allowlist`), the resolver fail-open contract (resolver
+  outage → fail-open to `optional`; misconfigured `restricted` policy
+  with empty/missing `allowedModels` → fail-closed), and a layered-
+  scope resolution model (`workspace` / `project` / `canvas-type`).
+  Field-reference table row added for `aiProviders.policies`.
+- **`schemas/capabilities.schema.json`** — `aiProviders` gains an
+  optional `policies` property (nested `modes` array with the four
+  mode enum, optional `scopes` array, optional `errorCode` string
+  override). Fully additive; existing capability documents continue
+  to validate.
+
+The policy *document* shape (per-workspace / per-project / per-canvas-
+type storage) is intentionally host-internal and NOT part of the wire
+protocol — clients learn the *outcome* through the
+`provider_policy_denied` error, not by subscribing to host audit events.
+
+Conformance scenario coverage to follow in a separate PR.
+
 ### 2026-04-29 — Publishing plan + CI workflow template (G10 phase 1)
 
 New `PUBLISHING.md` (FINAL v1.0, ~1,400 words) covers the operational
