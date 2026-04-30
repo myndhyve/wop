@@ -267,21 +267,60 @@ Fetch the pack tarball. Response MUST include `Content-Type: application/tar+gzi
 
 Fetch the pack manifest WITHOUT the runtime payload. Useful for introspection without triggering a full download.
 
+### `GET /v1/packs/{name}/-/{version}.sig`
+
+Fetch the detached Ed25519 signature blob over `pack.json` for this version. Pairs with the keychain endpoint (see `registry-operations.md` §"Signing keychain") to enable end-to-end signature verification: clients fetch the keychain, fetch the `.sig`, fetch the `.tgz`, then verify the signature against the keychain entries.
+
+The endpoint MAY 302-redirect to a storage-backend signed URL rather than streaming the bytes directly — clients SHOULD follow redirects.
+
+**Errors:**
+- `404 signature_not_available` — version is missing, yanked, unsigned at publish time, OR the registry's storage backend is unwired. The four cases are intentionally indistinguishable: yanked tarballs MUST NOT serve their signatures (consumers shouldn't be verifying against known-bad packs); unsigned tarballs simply have no `.sig` blob to return; missing tarballs and storage outages are infrastructural states the consumer can't act on differently.
+- `400 invalid_pack_name` / `400 invalid_version` — URL params don't match the spec's reverse-DNS / semver patterns.
+
 ### `PUT /v1/packs/{name}/-/{version}.tgz`
 
-Publish a new version. Body is the gzipped tarball. Auth via API key + `packs:publish` scope. Returns `201 Created` on success or `409 Conflict` if `(name, version)` already exists.
+Publish a new version. Body is the gzipped tarball as `application/gzip` (or `application/x-gzip` / `application/octet-stream`). Auth via API key + `packs:publish` scope. Returns `201 Created` on first publish, `200 OK` on idempotent re-publish (identical content), or `409 Conflict` if `(name, version)` already exists with different content.
 
 Headers:
 - `Authorization: Bearer <api-key>`
 - `X-Pack-Signing-Method: sigstore | manual | none`
 - `X-Pack-Sha256: sha256-<base64>` (caller-asserted; server verifies)
 
-Errors:
-- `400 invalid_pack_scope` — name doesn't match `core.*` / `vendor.*` / `community.*`.
-- `400 pack_integrity_failure` — server-computed SHA-256 doesn't match `X-Pack-Sha256`.
+Manifest extraction: the registry MUST extract `pack.json` from the tarball root and validate that `manifest.name` / `manifest.version` match the URL parameters before accepting the publish. The signature blob (if present in the tarball alongside `pack.json` per the `signing.signatureRef` path) is persisted as a sibling of the tarball and served via `GET /v1/packs/{name}/-/{version}.sig`.
+
+**Errors:**
+
+URL / scope:
+- `400 invalid_pack_scope` — name doesn't match `core.*` / `vendor.*` / `community.*` / `private.*`. Public registries (`packs.wop.dev`) MUST additionally refuse `private.*` and `local.*` per §Naming.
+- `400 invalid_pack_name` — URL pack-name doesn't match the reverse-DNS pattern at all (e.g., single segment, uppercase scope).
+- `400 invalid_version` — URL version doesn't match semver.
+
+Body shape:
+- `400 invalid_body` — body is not a Buffer / not octet-stream-shaped (caller sent JSON instead of tarball bytes).
+- `400 invalid_body` — empty body.
+
+Tarball extraction (`tarball_<code>` prefix groups these together for client-side switching):
+- `400 tarball_gunzip_failed` — body isn't a valid gzip stream.
+- `400 tarball_too_large` — decompressed bytes exceed the registry's cap (reference impl: 50 MB).
+- `400 tarball_manifest_missing` — no `pack.json` at the tarball root.
+- `400 tarball_manifest_too_large` — `pack.json` exceeds the registry's per-file cap (reference impl: 256 KB).
+- `400 tarball_manifest_not_json` — `pack.json` isn't valid JSON.
+- `400 tarball_entry_missing` — `manifest.runtime.entry` declares a path that isn't in the tarball.
+- `400 tarball_entry_too_large` — entry source exceeds the registry's per-file cap (reference impl: 5 MB).
+- `400 tarball_path_traversal` — a tarball entry's name contains `..` or otherwise attempts to escape the pack root.
+- `400 tarball_tar_parse_failed` — tar parser couldn't read the stream past the gzip layer.
+
+Manifest contents:
+- `400 invalid_manifest` — `pack.json` parsed but failed schema validation (missing required fields, wrong shape). Detail message includes the failing path.
+- `400 manifest_mismatch` — `manifest.name` and/or `manifest.version` differ from the URL params. Reference impl prefers the granular pair (`manifest_name_mismatch` / `manifest_version_mismatch`); registries MAY emit either form, clients MUST handle either.
+- `400 pack_integrity_failure` — server-computed SHA-256 doesn't match `X-Pack-Sha256` (when the header is supplied).
 - `400 unsupported_runtime` — `runtime.language` value not accepted by this registry.
-- `403 forbidden` — caller lacks the namespace claim.
-- `409 conflict` — version already published (semver pinning is immutable per npm convention). Reference impl emits the more descriptive `version_conflict` body code; either form is spec-allowed.
+
+Authorization + conflict:
+- `403 forbidden` — caller lacks the namespace claim or `packs:publish` scope.
+- `409 conflict` — version already published with different content (semver pinning is immutable per npm convention). Reference impl emits the more descriptive `version_conflict` body code; either form is spec-allowed.
+
+Idempotent re-publish: callers that PUT the SAME content (sha256-equal) for an existing `(name, version)` get `200 OK` with the existing record, NOT a conflict. This lets retries and tooling-driven re-uploads succeed cleanly.
 
 ### `DELETE /v1/packs/{name}/-/{version}`
 

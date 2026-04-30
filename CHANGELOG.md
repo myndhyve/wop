@@ -45,6 +45,37 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-04-30 — Document `GET /v1/packs/{name}/-/{version}.sig` + expanded PUT publish error catalog (Q6)
+
+`spec/v1/node-packs.md` §Registry HTTP API.
+
+Two contract gaps closed against the reference impl shipped 2026-04-30 (myndhyve/myndhyve `wop-host-registry` series).
+
+**1. New endpoint: `GET /v1/packs/{name}/-/{version}.sig`.**
+
+The detached Ed25519 signature blob (already documented as a manifest concept via `signing.signatureRef` in §Manifest format) had no documented retrieval endpoint. Without it, end-to-end client verification (fetch keychain → fetch signature → fetch tarball → verify) is impossible — clients could fetch the public keys but had nowhere to fetch the signature against. Added the route with:
+
+- `404 signature_not_available` for the unified missing/yanked/unsigned/storage-unwired states. The four cases are intentionally indistinguishable: yanked tarballs MUST NOT serve their signatures (consumers shouldn't verify against known-bad packs); the rest are infrastructure states the consumer can't act on differently.
+- `400 invalid_pack_name` / `invalid_version` for URL-param validation.
+- 302-redirect option so storage backends can serve the bytes directly without streaming through the registry.
+
+The keychain endpoint (`GET /v1/packs/{name}/-/keychain`) was already documented in `registry-operations.md` §"Signing keychain"; the `.sig` endpoint completes the verification pair.
+
+**2. Expanded PUT publish error catalog.**
+
+The PUT publish section previously listed 5 error codes (`invalid_pack_scope`, `pack_integrity_failure`, `unsupported_runtime`, `forbidden`, `conflict`). The reference impl emits 14 more across four error families that clients need for proper UX surfacing:
+
+- **URL/scope** (3 new): `invalid_pack_name` (regex mismatch), `invalid_version` (semver mismatch), and clarification that `invalid_pack_scope` covers the new `private.*` scope from the prior CHANGELOG entry.
+- **Body shape** (1 new): `invalid_body` — caller sent JSON instead of octet-stream tarball.
+- **Tarball extraction** (9 new, all with the `tarball_*` prefix for client-side switching): `tarball_gunzip_failed`, `tarball_too_large`, `tarball_manifest_missing`, `tarball_manifest_too_large`, `tarball_manifest_not_json`, `tarball_entry_missing`, `tarball_entry_too_large`, `tarball_path_traversal`, `tarball_tar_parse_failed`. Documented with reference-impl byte caps (50 MB total / 256 KB manifest / 5 MB entry source) — registries MAY use different caps but SHOULD emit the same code names.
+- **Manifest contents** (2 new): `invalid_manifest` (schema validation failure with detail-path), `manifest_mismatch` (name or version differ from URL — reference impl prefers granular `manifest_name_mismatch` / `manifest_version_mismatch`, registries MAY emit either form, clients MUST handle either).
+
+Also clarified the **idempotent re-publish** semantic: PUT with sha256-identical content for an existing `(name, version)` returns `200 OK` with the existing record, NOT 409. Lets retries and tooling-driven re-uploads succeed cleanly without conflict-handling boilerplate.
+
+The Content-Type accepted on the body is now explicit: `application/gzip`, `application/x-gzip`, or `application/octet-stream`. Reference impl rejects other types as `invalid_body`.
+
+Why now: closes the spec/impl drift surfaced during the WOP host-registry deployment (`docs/runbooks/WOP-HOST-REGISTRY-DEPLOYMENT.md` §6 publish flow). Without these codes documented, SDK / CLI authors writing against `node-packs.md` would map every 400 to a generic "bad request" UX instead of actionable per-stage diagnostics.
+
 ### 2026-04-30 — Reserve `private.<host>.*` scope for host-internal registries (Q6)
 
 `spec/v1/node-packs.md` §Naming + `schemas/node-pack-manifest.schema.json`.
