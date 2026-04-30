@@ -18,3 +18,11 @@ src/**/*.d.ts.map
 # Source of truth is vitest.config.ts; the .js variant should never exist.
 vitest.config.js
 vitest.config.js.map
+
+# `prepack` vendors api/ and schemas/ from the repo root for the npm
+# publish tarball; `postpack` removes them. If a publish run is killed
+# mid-way and these get left behind, this glob keeps them from being
+# accidentally committed. Source of truth is REPO_ROOT/api/ and
+# REPO_ROOT/schemas/, not these copies.
+/api/
+/schemas/

@@ -1,7 +1,7 @@
 {
   "name": "@myndhyve/wop-conformance",
-  "version": "1.7.0",
-  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.7.0) — first npm publication tracked as G10 phase 2 (see PUBLISHING.md). 1.7.0 adds vendor-neutral redaction scenarios (NFR-7).",
+  "version": "1.8.0",
+  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.8.0). 1.8.0 vendors api/openapi.yaml + api/asyncapi.yaml + schemas/*.schema.json into the published tarball so host implementers can consume contract material from one package (closes WOP-INTREE-DELETION-AUDIT.md M2). 1.7.0 added vendor-neutral redaction scenarios (NFR-7).",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/myndhyve/wop.git",
@@ -16,6 +16,8 @@
     "dist",
     "src",
     "fixtures",
+    "api",
+    "schemas",
     "vitest.config.ts",
     "README.md",
     "LICENSE"
@@ -25,7 +27,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "build:cli": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
-    "cli": "tsx src/cli.ts"
+    "cli": "tsx src/cli.ts",
+    "prepack": "rm -rf api schemas && cp -R ../api ./api && cp -R ../schemas ./schemas",
+    "postpack": "rm -rf api schemas"
   },
   "engines": {
     "node": ">=20"
