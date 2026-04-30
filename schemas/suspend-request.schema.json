@@ -51,11 +51,11 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["accept", "reject", "refine", "edit", "ask"]
+            "enum": ["accept", "reject", "refine", "edit-accept", "ask"]
           },
           "minItems": 1,
           "uniqueItems": true,
-          "description": "Allowed actions. Server MUST enforce on resolve. The 'ask' action does NOT exit the suspend — Q&A exchanges accumulate via askService until accept/reject/refine/edit fires."
+          "description": "Allowed actions. Server MUST enforce on resolve. The 'ask' action does NOT exit the suspend — Q&A exchanges accumulate via askService until accept/reject/refine/edit-accept fires. See `interrupt.md` §`ApprovalResume` for the action vocabulary + per-action required fields."
         },
         "requiredApprovals": {
           "type": "integer",

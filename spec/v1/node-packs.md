@@ -286,6 +286,11 @@ Errors:
 
 Unpublish — registries SHOULD refuse this for versions older than 72 hours (npm's left-pad lesson). Auth via API key + `packs:publish` scope.
 
+**Errors:**
+- `400 unpublish_window_expired` — version is older than the registry's unpublish window (default 72h). Use the yank flow instead (`POST /v1/packs/{name}/-/{version}/yank`) for security incidents.
+- `403 forbidden` — caller lacks `packs:publish` scope.
+- `404 not_found` — version doesn't exist.
+
 ### `GET /v1/packs/-/search?q=<term>`
 
 Full-text search across name + description + keywords. Returns paginated results.

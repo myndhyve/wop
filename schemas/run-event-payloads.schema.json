@@ -270,14 +270,29 @@
     },
     "approvalReceived": {
       "type": "object",
-      "description": "Emitted when an approval action is recorded (accept/reject/refine/edit). The `ask` action does NOT emit this — Q&A exchanges have their own log.",
+      "description": "Emitted when an approval action is recorded (accept/reject/refine/edit-accept/timeout). The `ask` action does NOT emit this — Q&A exchanges have their own log. See `interrupt.md` §`ApprovalResume` for the action vocabulary + the host-side enforcement boundary.",
       "required": ["nodeId", "action"],
       "properties": {
-        "nodeId":   { "type": "string" },
-        "action":   { "type": "string", "enum": ["accept", "reject", "refine", "edit", "timeout"] },
-        "voter":    { "type": "string" },
-        "comment":  { "type": "string" },
-        "feedback": { "type": "string" }
+        "nodeId":         { "type": "string" },
+        "action":         { "type": "string", "enum": ["accept", "reject", "refine", "edit-accept", "timeout"] },
+        "decidedBy":      { "type": "string", "description": "Host-defined opaque principal identifier. Hosts MUST populate this for non-timeout actions per `interrupt.md` §`Host-side enforcement boundary`." },
+        "decidedAt":      { "type": "string", "description": "ISO 8601 timestamp at decision time." },
+        "comment":        { "type": "string" },
+        "feedback":       { "type": "string", "description": "Legacy free-text feedback. New hosts SHOULD use `refineFeedback` for structured refine-action feedback." },
+        "refineFeedback": {
+          "type": "object",
+          "description": "Structured feedback object for `action: 'refine'`. See `interrupt.md` §`RefineFeedback`.",
+          "properties": {
+            "scope":       { "type": "string", "enum": ["whole", "section", "items"] },
+            "sectionPath": { "type": "string" },
+            "itemIds":     { "type": "array", "items": { "type": "string" } },
+            "tags":        { "type": "array", "items": { "type": "string" } },
+            "text":        { "type": "string" }
+          },
+          "required": ["scope"],
+          "additionalProperties": true
+        },
+        "editedArtifactData": { "description": "User-edited artifact bytes when `action: 'edit-accept'`." }
       },
       "additionalProperties": true
     },
