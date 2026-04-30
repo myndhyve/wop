@@ -10,12 +10,12 @@ The spec corpus ships 4 distributable artifacts alongside the prose docs:
 
 | Artifact | Package name | Version | Registry | Status |
 |---|---|---|---|---|
-| TypeScript SDK | `@myndhyve/wop` | `1.0.0` | npm | In-repo; first publish deferred |
-| TypeScript conformance suite | `@myndhyve/wop-conformance` | `1.7.0` | npm | In-repo; first publish deferred |
-| Python SDK | `wop-client` | `1.0.0` | PyPI | In-repo; first publish deferred |
-| Go SDK | `wopclient` | `v1.0.0` | Go modules (proxy.golang.org) | In-repo; first publish deferred |
+| TypeScript SDK | `@myndhyve/wop` | `1.0.0` | npm | **Live** (with provenance, since 2026-04-29) |
+| TypeScript conformance suite | `@myndhyve/wop-conformance` | `1.8.0` | npm | **Live** (with provenance; bumped 1.7.0 → 1.8.0 to vendor api/ + schemas/, see CHANGELOG) |
+| Python SDK | `wop-client` | `1.0.0` | PyPI | **Live** (since 2026-04-29) |
+| Go SDK | `github.com/myndhyve/wop/sdk/go` | `v1.0.0` | Go modules (proxy.golang.org) | **Live** (tag `sdk/go/v1.0.0`, since 2026-04-29) |
 
-All four are FINAL v1.0 at the source level — the spec contract is locked, the implementations are pinned, the conformance suite passes against the reference deployment. What's NOT yet done is the actual first publication to public registries. This doc covers the operational plan for closing that gap.
+All four shipped on 2026-04-29; conformance moved to 1.8.0 the same day to add the vendored API contracts. This doc is now an operational reference for ongoing releases (cadence + per-package tag patterns).
 
 ---
 
