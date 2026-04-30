@@ -106,73 +106,41 @@ For v1.0 launch, the release manager is the spec working group lead (currently T
 
 ---
 
-## CI automation (phase 2)
+## CI automation
 
-Phase 2 of G10 wires GitHub Actions to execute the publish on tag push. The workflow lives at `.github/workflows/wop-publish.yml.template` (committed but not active until a maintainer flips the trigger). The template:
+Live at `.github/workflows/wop-publish.yml`. Triggers map 1:1 to the §"Publication policy" release-type matrix above:
 
-```yaml
-name: Publish
+| Tag pattern | Triggers | Use case |
+|---|---|---|
+| `v*` (e.g. `v1.0.1`) | all 4 publish jobs | Spec corpus release — patch / minor / major. Every artifact bumps to the same version. |
+| `wop/v*` (e.g. `wop/v1.0.1`) | `publish-ts-client` only | TS SDK bug fix; spec + conformance + Python + Go versions unchanged. |
+| `wop-conformance/v*` (e.g. `wop-conformance/v1.8.0`) | `publish-conformance` only | Conformance scenario addition or test-suite bug fix. |
+| `wop-client/v*` (e.g. `wop-client/v1.0.1`) | `publish-python` only | Python SDK bug fix. |
+| `sdk/go/v*` (e.g. `sdk/go/v1.0.0`) | `publish-go` only | Go SDK bug fix. **Doubles as the subdir-prefix tag** that proxy.golang.org requires for non-root modules — the v1.0.0 launch tag is also `sdk/go/v1.0.0`. |
 
-on:
-  push:
-    tags:
-      - 'v*'
+Push the most specific tag for the change. Per-package tags keep unrelated packages at their current version (no phantom no-op republishes).
 
-jobs:
-  publish-ts-client:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-      - run: cd sdk/typescript && npm ci && npm run build
-      - run: cd sdk/typescript && npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+The workflow runs `bash scripts/wop-check.sh` as a hard preflight before any publish job, so a bad commit can't reach the registries even if a tag is pushed.
 
-  publish-conformance:
-    # ... similar shape
-
-  publish-python:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install --upgrade build twine
-      - run: cd sdk/python && python -m build
-      - run: cd sdk/python && twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-
-  publish-go:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # Go modules are tag-based; no upload step required.
-      # The proxy.golang.org cache picks up tags automatically.
-      - run: echo "Go module v$VERSION published via tag push."
-        env:
-          VERSION: ${{ github.ref_name }}
-```
-
-Secrets required (configured in repo settings before activating the workflow):
-- `NPM_TOKEN` — npm automation token with publish scope on `@wop` org.
-- `PYPI_TOKEN` — PyPI API token scoped to `wop-client` project.
+Secrets required (configured once at repo settings):
+- `NPM_TOKEN` — npm automation token with publish scope on `@myndhyve` (used for `@myndhyve/wop` and `@myndhyve/wop-conformance`).
+- `PYPI_TOKEN` — PyPI API token (project-scoped to `wop-client` recommended after first publish).
 - Go publication needs no secret — Go modules consume tags directly from the public repo.
 
-Activation steps when ready:
-1. Resolve the `@wop` npm org claim (or rename to a different scope).
-2. Resolve the PyPI project claim.
-3. Resolve the Go module path (host repo decision).
-4. Add the three secrets to repo settings.
-5. Move `.github/workflows/wop-publish.yml.template` to `.github/workflows/wop-publish.yml`.
-6. Push a `v1.0.0` tag.
-7. Watch the workflow + verify each registry receives the artifact.
+Activation history (closed):
+1. ✓ npm scope: `@myndhyve` (owned by `davidtufts`).
+2. ✓ PyPI project: `wop-client` claimed on first publish.
+3. ✓ Go module path: `github.com/myndhyve/wop/sdk/go` (no `/v1` suffix at v1.x.x).
+4. ✓ `NPM_TOKEN` + `PYPI_TOKEN` configured in repo settings.
+5. ✓ Workflow active at `.github/workflows/wop-publish.yml`.
+6. ✓ Initial release: `v1.0.0` (corpus-aligned) + `sdk/go/v1.0.0` (Go subdir tag) pushed 2026-04-29.
+7. ✓ All four registries verified live.
+
+For each subsequent release:
+- **Corpus-aligned** (e.g. spec patch 1.0.x → 1.0.1): push `vX.Y.Z`. All 4 jobs run.
+- **Per-package** (e.g. conformance 1.7.0 → 1.8.0): push the matching per-package tag from the matrix above. Only the matching job runs.
+
+Always: bump the version in the corresponding `package.json` / `pyproject.toml` BEFORE pushing the tag, and run `bash scripts/wop-check.sh` locally to surface any pre-publish issues that the workflow's preflight would catch.
 
 ---
 

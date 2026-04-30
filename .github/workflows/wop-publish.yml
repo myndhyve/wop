@@ -1,23 +1,30 @@
-# WOP spec-corpus publishing workflow (G10 phase 2 — INACTIVE TEMPLATE).
+# WOP spec-corpus publishing workflow.
 #
 # Public-repo variant. Layout in this repo: SDKs at sdk/{typescript,python,go}/,
 # conformance suite at conformance/. (The MyndHyve in-tree mirror keeps the
 # same files under docs/wop-spec/v1/.)
 #
-# This file is the .template variant — GitHub Actions IGNORES it because the
-# extension isn't .yml/.yaml at the workflow path. To activate:
-#   1. Resolve the npm publishing identity (token in NPM_TOKEN secret OR
-#      OIDC trusted publisher per package).
-#   2. Resolve the PyPI publishing identity (token in PYPI_TOKEN secret OR
-#      OIDC trusted publisher).
-#   3. Confirm Go module path (go.mod already aligned to this repo).
-#   4. Strip `"private": true` from sdk/typescript/package.json and
-#      conformance/package.json (they're set as a publish gate).
-#   5. Rename this file to `wop-publish.yml`.
-#   6. Push a `v1.0.0` tag — the workflow runs.
+# Triggers — see PUBLISHING.md §"Publication policy" for the documented
+# release-type matrix this implements:
 #
-# See PUBLISHING.md for the full activation steps, pre-publish checklist,
-# release-manager process, and rollback procedure.
+#   Tag pattern              Triggers              Use case
+#   -----------------        ----------------      -----------------------
+#   v*                       all 4 publish jobs    Corpus-aligned release
+#                                                  (spec patch/minor/major)
+#   wop/v*                   publish-ts-client     SDK-only patch (TS)
+#   wop-conformance/v*       publish-conformance   Scenario addition / suite
+#                                                  bug fix
+#   wop-client/v*            publish-python        SDK-only patch (Python)
+#   sdk/go/v*                publish-go            SDK-only patch (Go) +
+#                                                  doubles as the Go subdir
+#                                                  module-discovery tag
+#                                                  required by proxy.golang.org
+#
+# Push the most specific tag for the change. Per-package tags keep
+# unrelated package versions stable (no phantom bumps).
+#
+# See PUBLISHING.md for the full pre-publish checklist, release-manager
+# process, and rollback procedure.
 
 name: WOP — Publish
 
@@ -25,6 +32,10 @@ on:
   push:
     tags:
       - 'v*'
+      - 'wop/v*'
+      - 'wop-conformance/v*'
+      - 'wop-client/v*'
+      - 'sdk/go/v*'
 
 jobs:
   preflight:
@@ -39,6 +50,9 @@ jobs:
 
   publish-ts-client:
     needs: preflight
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      startsWith(github.ref, 'refs/tags/wop/v')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -57,6 +71,9 @@ jobs:
 
   publish-conformance:
     needs: preflight
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      startsWith(github.ref, 'refs/tags/wop-conformance/v')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -75,6 +92,9 @@ jobs:
 
   publish-python:
     needs: preflight
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      startsWith(github.ref, 'refs/tags/wop-client/v')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -94,20 +114,26 @@ jobs:
 
   publish-go:
     needs: preflight
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      startsWith(github.ref, 'refs/tags/sdk/go/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      # Go modules are tag-based. The proxy.golang.org cache picks up tags
-      # automatically; this step verifies the tagged module is resolvable.
+      # Go modules are tag-based. proxy.golang.org indexes from the tag
+      # automatically; this job's only purpose is to confirm vet+test
+      # pass against the tagged source so consumers don't pull broken code.
       - run: cd sdk/go && go vet ./...
       - run: cd sdk/go && go test ./...
       - name: Verify Go module discoverability
         run: |
-          echo "Go module is tag-driven; the v$VERSION tag has been pushed."
-          echo "Consumers can: go get github.com/myndhyve/wop/sdk/go@v$VERSION"
+          echo "Go module is tag-driven via ${GITHUB_REF}."
+          echo "Consumers can: go get github.com/myndhyve/wop/sdk/go@${VERSION}"
           echo "Cache warm-up may take ~5min for proxy.golang.org."
         env:
+          # github.ref_name is the bare tag (e.g. 'sdk/go/v1.0.0' or 'v1.0.0').
+          # Strip any subdir prefix so `go get @<VERSION>` looks right in logs.
           VERSION: ${{ github.ref_name }}
