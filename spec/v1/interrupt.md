@@ -107,6 +107,30 @@ type ApprovalResume =
   ;
 ```
 
+#### Host-side enforcement boundary (`decidedBy`, role gating, quorum)
+
+**`decidedBy` is host-defined opaque.** Hosts MAY use any string identifier — email address, UUID, JWT `sub` claim, OAuth principal, internal user ID — that is meaningful to the host's identity model. Other WOP consumers (clients, observability tools, conformance suites) MUST treat the value as an opaque string and MUST NOT parse it for structure. The engine emits whatever the host's resolution layer hands it.
+
+**Role / permission / quorum enforcement is the host's responsibility, performed BEFORE the engine sees the `ApprovalResume`.** The host's resolution layer is the gate:
+
+1. Caller submits a resume value via `POST /v1/runs/{runId}/interrupts/{nodeId}`.
+2. Host's auth + RBAC layer verifies the principal AND checks `approversList` / `requiredApprovals` / role allowlists / budget thresholds against the host's own policy model.
+3. Only if the policy check passes does the host hand the verified `ApprovalResume` to the engine.
+4. The engine emits `approval.received` (or, for non-approval kinds, `interrupt.resolved`) with the principal recorded in `decidedBy`.
+
+This factoring keeps WOP minimal — the protocol describes the lifecycle (request → response → recorded principal) and the wire shape, not the host's permission system. A host with rich RBAC (workspace roles, budget-tier approver assignment, multi-org quorum) and a host with no RBAC (single-user CLI runner) both implement the same wire contract.
+
+**`approversList` and `requiredApprovals` advertise constraint, they do not enforce it.** When the engine surfaces an `InterruptPayload` with `approversList: ['admin', 'owner']`, the values are advisory metadata for clients (e.g., the UI shows "must be approved by admin or owner"). The actual enforcement at resolve time is host-side — the engine accepts whatever the host hands it. Clients that display the list MUST NOT assume the engine refuses non-listed approvers; the host's resolution layer is the only authoritative gate.
+
+**Multi-approver quorum composition is implementation-defined for v1.0.** When `requiredApprovals > 1`, two valid models exist:
+
+1. *Host-composed quorum*: the host's resolution endpoint accumulates verified resumes (one per approver), applies `rejectionPolicy` (`single-veto` / `majority`) and delivers ONE final `ApprovalResume` to the engine when quorum is reached. The engine sees a single terminal `approval.received` event.
+2. *Engine-composed quorum*: the engine accumulates votes via per-resume calls to its resolution surface and emits one `approval.received` per vote (or a single terminal one — implementation choice). The reference implementation at `packages/workflow-engine/src/nodes/coordination/approvalGate.node.ts` uses this model with internal state at `_approvalVotes:{nodeId}`.
+
+Either model satisfies the v1.0 wire contract: the FINAL terminal `approval.received` MUST carry a `decidedBy` representing whoever closed the quorum (the last approver, or a synthetic `quorum:<n>-of-<m>` identifier). The intermediate event sequence (whether per-vote partial-state events appear) is NOT spec-locked at v1.0 — see I1 in §"Open spec gaps."
+
+**Interop note.** Conformance scenarios assert the wire-level contract (`decidedBy` non-empty, recorded in payload, immutable across replay) but DO NOT assert that any specific principal value is honored — that's host-policy territory.
+
 The `ask` action is a side channel: it accumulates Q&A exchanges via the `askService` callback without resuming the executor. The interrupt stays pending until one of the four exit actions fires.
 
 ### `kind: "clarification"`
