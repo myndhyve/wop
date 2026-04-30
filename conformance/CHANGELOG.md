@@ -4,6 +4,64 @@ Minor releases against the unchanged WOP v1.0 protocol contract. New
 scenarios may ship as `1.X.0`; the protocol contract itself remains at
 v1.0 (no breaking changes here unless protocol moves to v2).
 
+## [1.9.0] — 2026-04-30
+
+§7 drift audit closure for Q7 (approval payload). Adds vendor-neutral
+discovery-shape scenarios for the approval-resume vocabulary; absorbs
+the spec corrections that landed in `myndhyve/wop@c0d63ae` and
+`@86a4d80`.
+
+### Added
+
+- **`src/scenarios/approval-payload.test.ts`** — 4 vendor-neutral
+  scenarios:
+  1. **Legacy `'edit'` regression pin** — host `/.well-known/wop`
+     payload MUST NOT contain the legacy `'edit'` action token (use
+     `'edit-accept'` per the spec correction in `interrupt.md` §
+     `ApprovalResume`). Catches hosts that captured the spec during
+     the ~30-min same-day-correction window of `0e0171b` (2026-04-30).
+  2. **Canonical resume vocabulary pin** — pins the 5 resume actions
+     (`accept` / `reject` / `refine` / `edit-accept` / `ask`) so a
+     scenario reorder doesn't accidentally drop one.
+  3. **Resume vs event vocabulary asymmetry pin** — pins that `'ask'`
+     appears in resume (does NOT exit suspend) but NOT in
+     `approval.received` event vocabulary, AND that `'timeout'`
+     appears in event vocabulary but NOT as a resume action. The
+     two vocabularies overlap but are distinct.
+  4. **`refineFeedback` scope vocabulary pin** — pins the 3 documented
+     scopes (`whole` / `section` / `items`).
+
+### Discovery-shape only by design
+
+The wire vocabulary is the cross-implementation contract; the round-
+trip path (configure → trigger → resolve → assert event shape) needs
+server fixtures the suite doesn't currently provide. Per-action
+required-fields scenarios (`refine` MUST carry `refineFeedback.scope`;
+`edit-accept` MUST carry `editedArtifactData`) are deferred pending
+a future test-mode capability that lets conformance suites trigger
+an `awaiting_approval` state without going through the full workflow
+registration + run-create flow.
+
+Hosts MUST run their own integration tests against their resolution
+endpoints — the in-tree reference impl carries pin tests at
+`packages/workflow-engine/src/types/__tests__/ApprovalResume.specDrift.test.ts`.
+
+### Spec references
+
+- `interrupt.md` §`ApprovalResume` — 5-action vocabulary, layer
+  distinction, backward-compat mapping table.
+- `schemas/run-event-payloads.schema.json#$defs/approvalReceived` —
+  action enum + refineFeedback object shape + decidedBy + decidedAt.
+- `schemas/suspend-request.schema.json` — actions[] enum.
+- `capabilities.md` §"Secrets" — `run` scope reserved (Q3).
+- `node-packs.md` + `registry-operations.md` — `manifest_*_mismatch`
+  granular pair + `version_conflict` alias + `unpublish_window_expired`
+  documented (Q6).
+
+Total at 1.9.0: 117 scenarios across 24 files (59 server-free + 53
+server-required + 5 placeholder). All approval-payload scenarios are
+server-free.
+
 ## [1.8.0] — 2026-04-30
 
 Two unrelated additive changes bundled into the 1.8.0 staging window:

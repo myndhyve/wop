@@ -1,7 +1,7 @@
 {
   "name": "@myndhyve/wop-conformance",
-  "version": "1.8.0",
-  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.8.0). 1.8.0 vendors api/openapi.yaml + api/asyncapi.yaml + schemas/*.schema.json into the published tarball so host implementers can consume contract material from one package (closes WOP-INTREE-DELETION-AUDIT.md M2). 1.7.0 added vendor-neutral redaction scenarios (NFR-7).",
+  "version": "1.9.0",
+  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.9.0). 1.9.0 adds approval-payload vocabulary scenarios (§7 drift audit closure for Q7) + adopts spec corrections in c0d63ae (action enum `'edit'`→`'edit-accept'`, refineFeedback object shape, decidedBy layer distinction, manifest_path_mismatch granular pair, version_conflict alias, run scope reserved). 1.8.0 vendored api/openapi.yaml + api/asyncapi.yaml + schemas/*.schema.json into the published tarball (closes WOP-INTREE-DELETION-AUDIT.md M2). 1.7.0 added vendor-neutral redaction scenarios (NFR-7).",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/myndhyve/wop.git",
