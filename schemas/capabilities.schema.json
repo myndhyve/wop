@@ -140,7 +140,8 @@
         },
         "policies": {
           "type": "object",
-          "description": "(future) G22 — host-side policy enforcement modes for per-provider gating. Omitted → no enforcement; clients see only `optional` semantics. See `capabilities.md` §`aiProviders.policies`.",
+          "description": "(future) G22 — host-side policy enforcement modes for per-provider gating. Omitted → no enforcement; clients see only `optional` semantics. When present, MUST declare `modes` — an empty `{}` is not a valid third state. See `capabilities.md` §`aiProviders.policies`.",
+          "required": ["modes"],
           "properties": {
             "modes": {
               "type": "array",
