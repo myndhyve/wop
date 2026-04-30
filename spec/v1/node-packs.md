@@ -280,7 +280,7 @@ Errors:
 - `400 pack_integrity_failure` — server-computed SHA-256 doesn't match `X-Pack-Sha256`.
 - `400 unsupported_runtime` — `runtime.language` value not accepted by this registry.
 - `403 forbidden` — caller lacks the namespace claim.
-- `409 conflict` — version already published (semver pinning is immutable per npm convention).
+- `409 conflict` — version already published (semver pinning is immutable per npm convention). Reference impl emits the more descriptive `version_conflict` body code; either form is spec-allowed.
 
 ### `DELETE /v1/packs/{name}/-/{version}`
 
