@@ -4,6 +4,61 @@ Minor releases against the unchanged WOP v1.0 protocol contract. New
 scenarios may ship as `1.X.0`; the protocol contract itself remains at
 v1.0 (no breaking changes here unless protocol moves to v2).
 
+## [1.8.0] — 2026-04-30
+
+Two unrelated additive changes bundled into the 1.8.0 staging window:
+
+### Added
+
+- **`api/` + `schemas/` vendored into the npm tarball.** Closes
+  `WOP-INTREE-DELETION-AUDIT.md` M2 (commit `76a73e3`). Lets MyndHyve's
+  build-time consumer of OpenAPI YAML eventually read from this package
+  instead of the in-tree mirror at `docs/wop-spec/v1/api/openapi.yaml`.
+  - `package.json#files` += `"api"`, `"schemas"`
+  - `prepack` copies `../api` + `../schemas` (sibling dirs at repo
+    root) into `./api` + `./schemas` immediately before `npm pack`
+  - `postpack` removes them after pack
+  - `npm pack --dry-run`: 64 files / 77.8 kB; api/openapi.yaml +
+    api/asyncapi.yaml + 9 schemas; working dir clean post-pack
+- **`src/scenarios/policies.test.ts`** — 5 vendor-neutral discovery-
+  shape scenarios for the new `aiProviders.policies` capability
+  documented in `capabilities.md`. Asserts:
+  1. `aiProviders.policies` is well-formed when present (or absent —
+     both spec-allowed; hosts MAY omit).
+  2. Every advertised mode is one of the four canonical values
+     (`disabled` / `optional` / `required` / `restricted`).
+  3. `policies.modes` contains no duplicates (uniqueItems contract).
+  4. `policies.scopes` is a string[] of non-empty entries when
+     present (no enum constraint — vendor-extensible).
+  5. `policies.errorCode` is a non-empty string when present.
+
+### Why discovery-shape only
+
+  The four modes describe HOST-SIDE enforcement decisions. Round-trip
+  enforcement (e.g., "configure a `disabled` policy then assert a real
+  run is rejected with `provider_policy_denied`") requires admin write
+  access + a configured policy document + a real provider call —
+  outside the black-box contract surface this suite asserts. Hosts MUST
+  run their own integration tests for enforcement; the in-tree
+  reference impl carries 31 such tests in `wop-provider-policy-modes`
+  (the spec-side companion shipped by this same release window).
+
+### Spec references
+
+- `capabilities.md` §"`aiProviders.policies`" — section added in
+  `myndhyve/wop@0e0171b` (2026-04-30) documenting the four modes,
+  pre-dispatch behavior, the `provider_policy_denied` wire-format
+  error code with four canonical denial reasons (`disabled` /
+  `byok_required` / `model_not_allowed` / `restricted_no_allowlist`),
+  the resolver fail-open contract, and the layered-scope resolution
+  model.
+- `schemas/capabilities.schema.json` — additive `aiProviders.policies`
+  subtree (`modes` enum-validated, `scopes` + `errorCode` optional).
+
+Total at 1.8.0: 113 scenarios across 23 files (55 server-free + 53
+server-required + 5 placeholder). All policies scenarios are server-
+free.
+
 ## [1.7.0] — 2026-04-29
 
 Adds vendor-neutral redaction scenarios (NFR-7) — spec-side companion
