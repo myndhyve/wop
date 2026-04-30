@@ -45,6 +45,30 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-04-30 — `aiProviders.policies` reason-name correction (same-day spec fix)
+
+Aligns the documented denial reasons with the actual `ProviderPolicyError`
+enum in the reference impl. Detected when wiring the discovery
+advertisement on `services/workflow-runtime` — the in-tree
+`ProviderPolicyErrorReason` (engine package) is the authoritative
+contract; the spec text shipped earlier today drifted from it.
+
+- **`spec/v1/capabilities.md`** — denial-reason names corrected:
+  - `"disabled"` → `"provider_disabled"` (matches `ProviderPolicyError`
+    construction site in `serverExecutionHost.checkPolicyPreKey`).
+  - `"restricted_no_allowlist"` removed as a separate reason — that
+    case surfaces as `"model_not_allowed"` with `allowed: []` in the
+    error context, NOT a distinct reason code (matches impl).
+  - `"byok_required_but_unresolved"` added — the post-resolve case
+    where BYOK was required AND a `credentialRef` was supplied, but
+    the resolver returned no usable secret. Distinct wire shape from
+    the pre-resolve `"byok_required"` (which fires when no
+    `credentialRef` was ever supplied).
+- The four-mode taxonomy (`disabled` / `optional` / `required` /
+  `restricted`) is unchanged. Conformance scenarios in
+  `@myndhyve/wop-conformance@1.8.0` only assert mode names, not
+  reason names, so no scenario changes.
+
 ### 2026-04-30 — `aiProviders.policies` capability (G22 follow-on)
 
 Documents the four-mode provider-policy taxonomy that hosts MAY enforce
