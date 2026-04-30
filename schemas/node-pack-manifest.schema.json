@@ -8,8 +8,8 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Reverse-DNS pack name. Reserved scopes: `core.*` (spec-canonical), `vendor.<org>.*` (vendor-published), `community.<author>.*` (individual). `local.*` is for unpublished packs and MUST NOT appear in registries.",
-      "pattern": "^(core|vendor|community)\\.[a-z][a-z0-9_-]*(\\.[a-z][a-zA-Z0-9_-]*)+$",
+      "description": "Reverse-DNS pack name. Reserved scopes: `core.*` (spec-canonical), `vendor.<org>.*` (vendor-published), `community.<author>.*` (individual), `private.<host>.*` (host-internal — MUST NOT appear in `packs.wop.dev`). `local.*` is for in-repo unpublished packs and MUST NOT appear in any registry. See node-packs.md §Naming for the full reservation table.",
+      "pattern": "^(core|vendor|community|private)\\.[a-z][a-z0-9_-]*(\\.[a-z][a-zA-Z0-9_-]*)+$",
       "minLength": 1,
       "maxLength": 256
     },

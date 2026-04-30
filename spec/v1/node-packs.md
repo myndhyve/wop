@@ -35,6 +35,7 @@ Pack names use the reverse-DNS convention enforced by `typeId` patterns elsewher
 | `core.*` | Reserved for spec-canonical packs maintained by the WOP working group. Third parties MUST NOT publish under this scope. |
 | `vendor.<org>.*` | Vendor-published packs. The `<org>` segment is reserved on first-publish; subsequent publishes from a different account return `403 forbidden`. |
 | `community.<author>.*` | Hobbyist / individual packs. Lighter reservation; squatting is disputable but enforcement is best-effort. |
+| `private.<host>.*` | **Host-internal packs** running on a single deployment's private registry (e.g., a vendor's own Cloud Run + Cloud Storage stack). The `<host>` segment is operator-chosen and MUST NOT collide with reserved values. The public registry at `packs.wop.dev` MUST refuse `private.*` uploads with `400 invalid_pack_scope` — `private.*` is for self-hosted registries only. Mirrors the `local.*` "not for public registries" semantic, distinguished by intent: `local.*` is in-repo / dev-time; `private.<host>.*` is the host's curated production registry. See registry-operations.md §"Host-private marketplace relationship" for the deployment model. |
 | `local.*` | NOT published. Reserved for in-repo / unpublished private packs. Registries MUST refuse `local.*` uploads with `400 invalid_pack_scope`. |
 
 ### Reserved Core WOP node typeIds

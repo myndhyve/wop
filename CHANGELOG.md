@@ -45,6 +45,25 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-04-30 — Reserve `private.<host>.*` scope for host-internal registries (Q6)
+
+`spec/v1/node-packs.md` §Naming + `schemas/node-pack-manifest.schema.json`.
+
+A new reverse-DNS scope formally reserved for **host-internal pack registries** (e.g., a vendor's self-hosted GCS-backed deployment). The reference impl already accepted `private.*` packs via its own `PACK_NAME_RE` for the WOP host-registry feature shipped 2026-04-30; the spec / canonical schema now match — closes the silent drift where `@myndhyve/wop-conformance@1.8.0`'s `node-pack-manifest.schema.json` would reject `private.*` packs even though the reference registry accepted them.
+
+**What's reserved:** `private.<host>.<...>` follows the same dotted reverse-DNS shape as the other scopes. The `<host>` segment is operator-chosen — the host running the private registry picks a stable identifier that won't collide with `core` / `vendor.<org>` / `community.<author>` / `local`.
+
+**What's enforced:**
+- The public registry at `packs.wop.dev` (forthcoming) MUST refuse `private.*` uploads with `400 invalid_pack_scope`. Mirrors the `local.*` "not for public" semantic.
+- Self-hosted registries MAY accept `private.*` uploads as host policy.
+- A `private.<host>.*` pack CANNOT migrate to `packs.wop.dev` without renaming to `vendor.<host>.*` or another non-`private` scope (and re-signing).
+
+**Distinction from `local.*`:** `local.*` is in-repo / dev-time / unpublished. `private.<host>.*` is the host's *curated production* registry — published, signed, version-tracked, but not in the public namespace. The two scopes are deliberately separate so a tooling decision ("can this pack be `npm pack` shipped vs needs registry submission?") is unambiguous.
+
+**Schema change:** the regex in `node-pack-manifest.schema.json:name.pattern` widened from `^(core|vendor|community)\.[a-z]...$` to `^(core|vendor|community|private)\.[a-z]...$`. Additive — every pack that validated before still validates now; new `private.*` packs additionally validate.
+
+Why now: closes drift between the spec's documented scopes and the reference registry's enforcement, surfaced by the WOP host-registry deployment runbook (`myndhyve/myndhyve@d8...d49b1` series). Aligns with `registry-operations.md` §"Host-private marketplace relationship" which described the deployment model but didn't reserve a scope for it.
+
 ### 2026-04-30 — §7 drift audit corrections (Q3 / Q6 / Q7 — multiple sections)
 
 Reconciles spec text + JSON schemas with the actual MyndHyve reference impl wire shape after a cross-check of every `RESOLVED` §7 question against in-tree types/enums/payloads. Spec direction: **reality first** — extend or amend documented contracts to match what the reference impl already emits, since (a) tightening impl risks breaking persisted events + in-flight runs, (b) extending spec is purely additive for clients.
