@@ -117,14 +117,12 @@ This safe-harbor commitment binds the maintainer set; it does not bind third-par
 
 WOP threat models live at `SECURITY/threat-model-*.md` and cover specific attack surfaces:
 
-- `SECURITY/threat-model-node-packs.md` — node-pack ecosystem (tampering, sandbox escape, signature substitution).
-- `SECURITY/threat-model-prompt-injection.md` — LLM-mediated workflows (indirect injection, exfiltration, policy bypass).
-- `SECURITY/threat-model-secret-leakage.md` — BYOK secret resolution and redaction invariants.
-- `SECURITY/threat-model-provider-policy.md` — provider-policy bypass paths.
+- `SECURITY/threat-model-secret-leakage.md` — BYOK secret resolution and redaction invariants (T1–T5 trust boundaries; 12 invariants).
+- `SECURITY/threat-model-prompt-injection.md` — LLM-mediated workflows (indirect injection via artifacts, exfiltration via tool outputs, refine-feedback path manipulation; 13 invariants).
+- `SECURITY/threat-model-node-packs.md` — node-pack supply chain (tampering, signature substitution, sandbox escape; 25 invariants).
+- `SECURITY/threat-model-provider-policy.md` — provider-policy bypass paths across all four modes; 13 invariants.
 
-The threat models track invariants in `SECURITY/invariants.yaml`; the CI gate at `scripts/check-security-invariants.sh` verifies each invariant maps to at least one redaction or conformance test.
-
-These artifacts ship as part of LT7 of the post-publication leadership track. Until they land, the threat-model directory is empty and this section's links 404; they're enumerated here so the disclosure policy is forward-compatible.
+The threat models track invariants in `SECURITY/invariants.yaml`; the CI gate at `scripts/check-security-invariants.sh` (step 8 of `wop-check.sh`) verifies every protocol-tier MUST-NOT maps to at least one matching conformance test. Reference-impl-tier invariants are verified by the reference impl's CI; advisory invariants are defense-in-depth and don't gate.
 
 ## 9. External audit
 

@@ -45,6 +45,33 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — Security threat models + invariants index + CI gate
+
+Lands the LT7.1–LT7.5 deliverables of the post-publication leadership track (per the MyndHyve-side `docs/plans/WOP-LEADERSHIP-TRACK.md`). All changes are documentation + CI gate — no wire-shape change, no schema modifications, no SDK changes. Conformance suite is untouched (existing scenarios are referenced by the new invariants index, no new scenarios in this commit).
+
+**Threat models** (4 new files in `SECURITY/`):
+
+- `SECURITY/threat-model-secret-leakage.md` — BYOK secret resolution path. Trust boundaries T1–T5 (client → host → KMS-encrypted store → provider → observable surface). STRIDE per surface (event log payloads, OTel spans, error envelopes, debug bundles, exports, provider response stream). 12 invariants. Companion to existing redaction harness work that shipped in `wop-byok-harness` + `wop-byok-impl` (per `WOP-PHASED-DELIVERY.md` §8).
+- `SECURITY/threat-model-prompt-injection.md` — LLM-mediated workflows. T1–T4 trust boundaries (user → host → prompt context → LLM → envelope → action dispatch). Untrusted-marker discipline at every prompt-context boundary; envelope type validation; HITL-only authority for approvals; tool allowlist gating. 13 invariants.
+- `SECURITY/threat-model-node-packs.md` — node-pack supply chain. T1–T5 trust transitions (author → registry → host → sandbox → workflow). Manifest validation, signature verification, workspace approval, sandbox execution (no `process` / no `eval` / capability-gated I/O / per-invocation timeout + memory caps), pack output as untrusted. 25 invariants — the largest model.
+- `SECURITY/threat-model-provider-policy.md` — provider-policy bypass paths. Four-mode enforcement (`disabled` hard-deny / `optional` no-op / `required` BYOK-only / `restricted` allowlist-glob). Pre-dispatch hook required; resolver outage fail-open; `restricted` without allowlist fail-closed. 13 invariants.
+
+**Invariants index** (`SECURITY/invariants.yaml`):
+
+YAML index of every MUST-NOT invariant from the four threat models. 63 total: 30 protocol-tier, 32 reference-impl-tier, 1 advisory. Each entry maps to one or more test file globs. Architecture-review fix #8: free-form Markdown parsing of threat models was rejected (fragile to reformatting); the YAML is the canonical source of truth, threat models are human-readable documentation.
+
+Adding an invariant requires (a) adding it to the threat model with a unique ID, (b) adding the entry to `invariants.yaml`, (c) for protocol-tier: ensuring at least one test glob resolves. Removing an invariant requires an RFC per `RFCS/0001-rfc-process.md` because invariants are part of the security commitment.
+
+**CI gate** (`scripts/check-security-invariants.sh`):
+
+New step 8 in `wop-check.sh`. Reads `invariants.yaml` and verifies every protocol-tier MUST-NOT has at least one matching test file. Fails closed if a protocol-tier invariant has zero coverage. Reference-impl-tier and advisory invariants are not gated at this step (they're verified by the reference impl's own CI, or are defense-in-depth without a hard MUST).
+
+Current state: 30/30 protocol-tier invariants pass; reference impl tracks the remaining 32 in its in-tree test suite (per `WOP-PHASED-DELIVERY.md` §8). 1 advisory invariant (`secret-leakage-author-emit`) has no required test — defense-in-depth only.
+
+**SECURITY.md** updated to point at the four threat models with invariant counts and to reference the new CI gate as step 8 of `wop-check.sh`.
+
+LT7.6 (external audit engagement) is intentionally deferred — gated on LT1 governance maturity per the leadership-track dependency graph.
+
 ### 2026-05-01 — Compatibility profiles + scale profiles + RFC 0002 idempotency-retry
 
 Lands the LT4 deliverables of the post-publication leadership track (per the MyndHyve-side `docs/plans/WOP-LEADERSHIP-TRACK.md`). All changes are additive per `COMPATIBILITY.md` §2.1 — no wire-shape change to `/.well-known/wop`, no schema modifications, no SDK changes. Conformance suite gains 2 new scenario files (25 server-free + N runtime).
