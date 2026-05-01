@@ -1,0 +1,14 @@
+{
+  "name": "@myndhyve/wop-example-tiny-workflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Smallest possible WOP workflow execution: discovery + create run + poll until terminal. Zero dependencies beyond Node stdlib.",
+  "type": "module",
+  "scripts": {
+    "start": "node tiny-workflow.mjs",
+    "test": "node tiny-workflow.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

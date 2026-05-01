@@ -27,18 +27,32 @@ The WOP spec is the externally-visible contract that lets independent implementa
 | [`webhooks.md`](./webhooks.md) | FINAL v1.0 | ~1,400 | Subscription register/unregister; HMAC `{timestamp}.{rawBody}` signing; replay-attack-resistant verification recipe; best-effort delivery semantics + circuit breaker (post-v1.0 addition, 2026-04-29) |
 | [`storage-adapters.md`](./storage-adapters.md) | FINAL v1.0 | ~1,150 | Normative `RunEventLogIO` + `SuspendIO` contracts for storage backends; in-memory reference impls; compliance checklist for third-party adapter authors (post-v1.0 addition, 2026-04-29) |
 | [`registry-operations.md`](./registry-operations.md) | FINAL v1.0 | ~3,000 | Operator-side normative reference for node-pack registries: submission, validation, deprecation, yank, signing-key rotation, MyndHyve marketplace boundary (post-v1.0 addition, 2026-04-29 — closes NP4 + NP5 from `node-packs.md`) |
+| [`profiles.md`](./spec/v1/profiles.md) | DRAFT v1.1 | ~1,200 | Compatibility profiles derived from existing capabilities (no wire-shape change): `wop-core`, `wop-interrupts`, `wop-stream-sse`, `wop-stream-poll`, `wop-secrets`, `wop-provider-policy`, `wop-node-packs` |
+| [`scale-profiles.md`](./spec/v1/scale-profiles.md) | DRAFT v1.1 | ~900 | Three normative scale tiers (`minimal` / `production` / `high-throughput`) with floors for concurrency, latency, retry, fan-out, replay |
+| [`debug-bundle.md`](./spec/v1/debug-bundle.md) | DRAFT v1.1 | ~900 | Portable JSON export of a single run's diagnostic state: `GET /v1/runs/{runId}/debug-bundle`. Profile-gated on `capabilities.debugBundle.supported: true` |
+| [`positioning.md`](./spec/v1/positioning.md) | DRAFT v1.1 | ~1,100 | Honest comparison of WOP vs Temporal / Airflow / Argo / Step Functions / BPMN / LangGraph / MCP. When to choose WOP and when not. |
+| [`mcp-integration.md`](./spec/v1/mcp-integration.md) | DRAFT v1.1 | ~700 | Worked example of WOP + MCP composition. WOP runs the workflow; MCP exposes tools to the LLM nodes inside that workflow. |
+| [`host-extensions.md`](./spec/v1/host-extensions.md) | DRAFT v1.1 | ~900 | What's in the protocol vs what's a host extension. Canonical-prefix table; `myndhyve.*` and other vendor namespaces are host-extensions. |
 
-**Total**: 15 docs, ~22,200 words. The 12 v1.0 launch docs (top of table) all FINAL v1.0 as of 2026-04-27; `webhooks.md` + `storage-adapters.md` + `registry-operations.md` are post-v1.0 additions for surfaces that landed during the B.6 / G8 / G11 follow-on tracks.
+**Total**: 21 docs. The 12 v1.0 launch docs (FINAL v1.0, 2026-04-27); `webhooks.md` + `storage-adapters.md` + `registry-operations.md` are post-v1.0 additions for B.6 / G8 / G11 surfaces; `profiles.md` + `scale-profiles.md` + `debug-bundle.md` + `positioning.md` + `mcp-integration.md` + `host-extensions.md` are DRAFT v1.1 additions from the post-publication leadership track (LT4 + LT5 + LT6).
 
 ## Quickstart
 
-New to WOP? Start with **[`QUICKSTART.md`](./QUICKSTART.md)** for an end-to-end walkthrough covering:
+New to WOP? Two paths:
 
-- Calling a WOP-compliant server (auth + create run + read snapshot)
-- Receiving live events (SSE / webhook patterns)
-- Time-travel debugging (fork + replay)
-- Writing a node pack
-- Certifying your implementation against the conformance suite
+- **[`QUICKSTART-10MIN.md`](./QUICKSTART-10MIN.md)** — fastest possible "what is WOP and how do I run one?" Boots the in-memory reference host on your laptop, runs a workflow via curl + SDK + SSE. No MyndHyve, no Firebase, no production setup. Just Node 20+ and a clone of this repo.
+- **[`QUICKSTART.md`](./QUICKSTART.md)** — end-to-end walkthrough against any WOP-compliant host: auth + create run + read snapshot, SSE + webhooks, fork + replay, node packs, conformance.
+
+## Examples
+
+Runnable example projects under [`examples/`](./examples/):
+
+- **[`tiny-workflow/`](./examples/tiny-workflow/)** — smallest possible WOP run lifecycle (~80 lines, zero deps).
+- **[`streaming-client/`](./examples/streaming-client/)** — SSE event-stream consumer with hand-written frame parser (~110 lines, zero deps).
+- **[`idempotent-runs/`](./examples/idempotent-runs/)** — Layer-1 HTTP idempotency: retries collapse, body conflicts get 409 (~80 lines, zero deps).
+- **[`hosts/in-memory/`](./examples/hosts/in-memory/)** — single-file reference WOP server (~570 lines, Node stdlib only). The host the other examples run against.
+
+Examples run end-to-end in CI via [`.github/workflows/examples.yml`](./.github/workflows/examples.yml) so they don't go stale.
 
 ## Operational references
 

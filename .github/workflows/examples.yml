@@ -1,0 +1,92 @@
+name: Examples CI
+
+# Examples-installer + run-through gate per LT6.7 of the post-publication
+# leadership track (docs/plans/WOP-LEADERSHIP-TRACK.md, MyndHyve-side).
+#
+# Runs every example end-to-end against the in-memory reference host
+# so that:
+#
+#   1. Examples don't go stale — if an example breaks against the
+#      current spec or host, this CI catches it.
+#   2. The "WOP in 10 minutes" claim in QUICKSTART-10MIN.md remains
+#      accurate. New developers who follow the guide should not be
+#      the first to discover a broken example.
+#
+# Adding an example: drop a new dir under examples/<name>/ with a
+# package.json that exposes `npm test`. The matrix below picks it up
+# automatically once you add the dir name.
+#
+# Examples that need profile features the in-memory host doesn't
+# support (approval-workflow, replay-fork, mcp-tool, node-pack-publishing)
+# are NOT in this matrix. They target MyndHyve-only and are exercised
+# by the MyndHyve repo's CI.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/**'
+      - '.github/workflows/examples.yml'
+      - 'conformance/fixtures/**'
+  pull_request:
+    paths:
+      - 'examples/**'
+      - '.github/workflows/examples.yml'
+      - 'conformance/fixtures/**'
+
+jobs:
+  examples:
+    name: examples (${{ matrix.example }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each entry MUST be a directory under examples/ with a
+        # package.json that has `npm test` defined and runs against
+        # the in-memory host on http://127.0.0.1:3737 with API key
+        # `wop-inmem-dev-key`.
+        example:
+          - tiny-workflow
+          - streaming-client
+          - idempotent-runs
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install in-memory host
+        working-directory: examples/hosts/in-memory
+        run: npm install
+
+      - name: Start in-memory host
+        working-directory: examples/hosts/in-memory
+        run: |
+          npm start > /tmp/wop-host.log 2>&1 &
+          for i in {1..30}; do
+            if curl -sf http://127.0.0.1:3737/.well-known/wop > /dev/null; then
+              echo "host ready"; exit 0
+            fi
+            sleep 1
+          done
+          echo "host failed to start" >&2
+          cat /tmp/wop-host.log >&2
+          exit 1
+
+      - name: Install example deps
+        working-directory: examples/${{ matrix.example }}
+        run: npm install --silent
+
+      - name: Run example
+        working-directory: examples/${{ matrix.example }}
+        env:
+          WOP_BASE_URL: http://127.0.0.1:3737
+          WOP_API_KEY: wop-inmem-dev-key
+        run: npm test
+        timeout-minutes: 2
+
+      - name: Show host log on failure
+        if: failure()
+        run: cat /tmp/wop-host.log

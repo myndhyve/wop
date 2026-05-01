@@ -45,6 +45,51 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — LT6 — DX & positioning: 10-min quickstart + 3 examples + 3 spec docs + CI gate
+
+Lands LT6.1 + LT6.2 (partial: 3 of 7) + LT6.3 + LT6.4 + LT6.5 + LT6.6 + LT6.7 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md`. Documentation + examples + GitHub Actions; no wire-shape change, no schema modifications, no SDK changes, no conformance scenario changes.
+
+**LT6.1 — `QUICKSTART-10MIN.md`** (new at repo root):
+
+Fastest path from "what is WOP?" to "I have a workflow running on my laptop." Boots the in-memory reference host, runs a workflow via curl + SDK + SSE. Zero MyndHyve / Firebase / React. Just Node 20+ and a clone of this repo. Complements the existing `QUICKSTART.md` (general-host, ~5 min) — this one is the bootstrap-from-zero path that the existing guide assumes you've already done.
+
+**LT6.2 partial — 3 example projects**:
+
+- `examples/tiny-workflow/` (~80 LOC) — smallest possible WOP run lifecycle. Discover + create + poll. Pure `fetch`.
+- `examples/streaming-client/` (~110 LOC) — SSE event-stream consumer with hand-written 25-line frame parser.
+- `examples/idempotent-runs/` (~80 LOC) — Layer-1 idempotency demo: 3 retries collapse to one runId; 4th call with conflicting body gets 409.
+
+All three use only Node 20+ stdlib. All three pass end-to-end against the in-memory reference host.
+
+The remaining 4 examples (`approval-workflow`, `replay-fork`, `mcp-tool`, `node-pack-publishing`) are deferred to a successor session — each requires profile features the in-memory host doesn't claim, so they'd target MyndHyve-only and need separate fixture work.
+
+**LT6.3 — `spec/v1/positioning.md`** (DRAFT v1.1):
+
+Honest comparison of WOP vs Temporal / Airflow / Argo / AWS Step Functions / BPMN / LangGraph / MCP. When to choose WOP and when not. How WOP integrates with each (Temporal-backed host, BPMN-to-WOP compiler, LangGraph-inside-a-WOP-node, etc.). Recommended public message and the framing to avoid. Closes the analysis recommendation #4 ("Clarify the category").
+
+**LT6.4 — `spec/v1/mcp-integration.md`** (DRAFT v1.1):
+
+Worked example of WOP + MCP composition. WOP runs the workflow; MCP exposes tools to the LLM nodes inside that workflow. Trust-boundary section cross-references `SECURITY/threat-model-prompt-injection.md` MCP invariants. Concrete request flow showing how the two protocols layer.
+
+**LT6.5 — `spec/v1/host-extensions.md`** (DRAFT v1.1):
+
+Canonical reference for what's in the protocol vs what's a host extension. Closed prefix table (`wop.*` / `core.*` / `community.*` / `vendor.<org>.*` / `private.<host>.*` / `local.*` are protocol-managed; vendor-prefixed namespaces like `myndhyve.*` are host extensions). What hosts MUST NOT do (redefine `wop.*` semantics; depend on clients honoring extension fields).
+
+**LT6.6 — README tightening**:
+
+Added 6 new spec-doc rows to the document index (profiles, scale-profiles, debug-bundle, positioning, mcp-integration, host-extensions). New §"Examples" pointing at the 3 runnable projects + the in-memory host. Quickstart section now offers two paths (10-min bootstrap vs general-host).
+
+**LT6.7 — Examples CI gate**:
+
+`.github/workflows/examples.yml` runs every example end-to-end against the in-memory reference host on push/PR touching `examples/**`. Matrix-driven so adding an example is a one-line change. Uses Node 20, 2-minute timeout per example, dumps host log on failure. Closes the "examples don't go stale" concern from the architecture review.
+
+**LT6.6b — MyndHyve-side copy alignment** intentionally deferred — that's in-tree work in the MyndHyve repo, not the public WOP repo, and warrants its own session.
+
+**Validation:**
+- All 3 new examples run end-to-end against the in-memory host with `npm start`.
+- CI gate `scripts/wop-check.sh` 8/8 green.
+- All new spec docs carry the `Status: DRAFT v1.1 (2026-05-01)` tag and pass the spec-corpus-validity scenario.
+
 ### 2026-05-01 — LT5 — Observability events + debug-bundle spec + schema + conformance
 
 Lands LT5.1 + LT5.3 + LT5.4 + LT5.6 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md`. Bumps suite to `@myndhyve/wop-conformance@1.12.0`. LT5.2 rejected as redundant (existing observability.md already covers OTel mapping comprehensively); LT5.5 (Cloud Run endpoint deploy in MyndHyve reference impl) deferred to operator authorization for the workflow-protocol deploy checklist — endpoint added to in-memory reference host instead so LT5.6 conformance scenario runs end-to-end.

@@ -1,0 +1,14 @@
+{
+  "name": "@myndhyve/wop-example-idempotent-runs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WOP idempotent run creation: send POST /v1/runs three times with the same Idempotency-Key and demonstrate that exactly one run is created.",
+  "type": "module",
+  "scripts": {
+    "start": "node idempotent-runs.mjs",
+    "test": "node idempotent-runs.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

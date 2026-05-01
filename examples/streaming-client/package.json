@@ -1,0 +1,14 @@
+{
+  "name": "@myndhyve/wop-example-streaming-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WOP SSE event-stream consumer. Connects to a run's event stream and prints each event as it arrives.",
+  "type": "module",
+  "scripts": {
+    "start": "node streaming-client.mjs",
+    "test": "node streaming-client.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
