@@ -51,6 +51,7 @@ Runnable example projects under [`examples/`](./examples/):
 - **[`streaming-client/`](./examples/streaming-client/)** — SSE event-stream consumer with hand-written frame parser (~110 lines, zero deps).
 - **[`idempotent-runs/`](./examples/idempotent-runs/)** — Layer-1 HTTP idempotency: retries collapse, body conflicts get 409 (~80 lines, zero deps).
 - **[`hosts/in-memory/`](./examples/hosts/in-memory/)** — single-file reference WOP server (~570 lines, Node stdlib only). The host the other examples run against.
+- **[`hosts/sqlite/`](./examples/hosts/sqlite/)** — durable reference WOP server (~700 lines, single dep `better-sqlite3`). Runs + events persist across process restart. The README doubles as the **"Build Your Own Host" walkthrough**.
 
 Examples run end-to-end in CI via [`.github/workflows/examples.yml`](./.github/workflows/examples.yml) so they don't go stale.
 

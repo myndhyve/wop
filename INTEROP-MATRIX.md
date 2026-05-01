@@ -13,7 +13,7 @@ A host's place in this matrix is a **claim plus evidence**. The claim is the hos
 |---|---|---|---|---|
 | **MyndHyve** (reference, production) | `myndhyve/myndhyve` (`services/workflow-runtime/`) | `wop-core` · `wop-interrupts` · `wop-stream-sse` · `wop-stream-poll` · `wop-secrets` · `wop-provider-policy` · `wop-node-packs` | `production` | `https://workflow-runtime-gjw5bcse7a-uc.a.run.app` (Cloud Run) |
 | **In-memory** (reference, example) | `examples/hosts/in-memory/` | `wop-core` · `wop-stream-sse` · `wop-stream-poll` | `minimal` | `examples/hosts/in-memory/conformance.md` |
-| **SQLite** (planned, example) | `examples/hosts/sqlite/` | TBD (LT2.3 follow-up) | TBD | TBD |
+| **SQLite** (reference, example, durable) | `examples/hosts/sqlite/` | `wop-core` · `wop-stream-sse` · `wop-stream-poll` | `minimal` | `examples/hosts/sqlite/conformance.md` |
 
 Third-party hosts append rows by opening a PR with their conformance result + repo link. No vetting beyond "the suite passes against the URL you provided."
 
@@ -25,42 +25,48 @@ Suite scenarios are listed in suite-file order. Each row is a `*.test.ts` file u
 
 | Scenario | MyndHyve | In-memory | SQLite |
 |---|---|---|---|
-| `discovery.test.ts` | ✅ | ✅ | – |
-| `runs-lifecycle.test.ts` | ✅ | ✅ | – |
-| `idempotency.test.ts` | ✅ | ✅ | – |
-| `cancellation.test.ts` | ✅ | ✅ | – |
-| `auth.test.ts` | ✅ | ✅ | – |
-| `errors.test.ts` | ✅ | ✅ | – |
-| `failure-path.test.ts` | ✅ | ✅ | – |
-| `multi-node-ordering.test.ts` | ✅ | ✅ | – |
-| `policies.test.ts` | ✅ | ✅ (skip-eq) | – |
-| `redaction.test.ts` | ✅ | ✅ (skip-eq) | – |
-| `cost-attribution.test.ts` | ✅ (5 todo) | ✅ (5 todo) | – |
-| `fixtures-valid.test.ts` | ✅ | ✅ | – |
-| `spec-corpus-validity.test.ts` | ✅ | ✅ | – |
-| `profileDerivation.test.ts` | ✅ | ✅ | – |
-| `highConcurrency.test.ts` | ✅ | ✅ | – |
-| `runtime-capabilities.test.ts` | ✅ | ❌ | – |
-| `version-negotiation.test.ts` | ✅ | ❌ (1/4) | – |
+| `discovery.test.ts` | ✅ | ✅ | ✅ |
+| `runs-lifecycle.test.ts` | ✅ | ✅ | ✅ |
+| `idempotency.test.ts` | ✅ | ✅ | ✅ |
+| `idempotencyRetry.test.ts` | ✅ | ✅ | ✅ |
+| `cancellation.test.ts` | ✅ | ✅ | ✅ |
+| `auth.test.ts` | ✅ | ✅ | ✅ |
+| `errors.test.ts` | ✅ | ✅ | ✅ |
+| `failure-path.test.ts` | ✅ | ✅ | ✅ |
+| `multi-node-ordering.test.ts` | ✅ | ✅ | ✅ |
+| `eventOrdering.test.ts` | ✅ | ✅ | ✅ |
+| `policies.test.ts` | ✅ | ✅ (skip-eq) | ✅ (skip-eq) |
+| `providerPolicyEnforcement.test.ts` | ✅ | ✅ (shape only) | ✅ (shape only) |
+| `redaction.test.ts` | ✅ | ✅ (skip-eq) | ✅ (skip-eq) |
+| `redactionAdversarial.test.ts` | ✅ | ✅ | ✅ |
+| `cost-attribution.test.ts` | ✅ (5 todo) | ✅ (5 todo) | ✅ (5 todo) |
+| `fixtures-valid.test.ts` | ✅ | ✅ | ✅ |
+| `spec-corpus-validity.test.ts` | ✅ | ✅ | ✅ |
+| `profileDerivation.test.ts` | ✅ | ✅ | ✅ |
+| `highConcurrency.test.ts` | ✅ | ✅ | ✅ |
+| `debugBundle.test.ts` | ✅ | ✅ | ✅ |
+| `runtime-capabilities.test.ts` | ✅ | ❌ | ❌ |
+| `version-negotiation.test.ts` | ✅ | ❌ (1/4) | ❌ (1/4) |
 | `cap-breach.test.ts` | ✅ | – | – |
 | `channel-ttl.test.ts` | ✅ | – | – |
 | `subworkflow.test.ts` | ✅ | – | – |
-| `replay-fork.test.ts` | ✅ | – (1/6) | – |
-| `interrupt-approval.test.ts` | ✅ | – (out-of-profile) | – |
-| `interrupt-clarification.test.ts` | ✅ | – (out-of-profile) | – |
-| `approval-payload.test.ts` | ✅ | ✅ (shape only) | – |
-| `pack-registry.test.ts` | ✅ | – (out-of-profile, partial absence-fallback) | – |
-| `pack-registry-publish.test.ts` | ✅ | ✅ (skip-eq) | – |
-| `stream-modes.test.ts` | ✅ | ❌ (3/4) | – |
-| `stream-modes-buffer.test.ts` | ✅ | ❌ (1/4) | – |
-| `stream-modes-mixed.test.ts` | ✅ | ❌ (2/4) | – |
-| `identity-passthrough.test.ts` | ✅ | ❌ | – |
+| `replay-fork.test.ts` | ✅ | – (1/6) | – (1/6) |
+| `interrupt-approval.test.ts` | ✅ | – (out-of-profile) | – (out-of-profile) |
+| `interrupt-clarification.test.ts` | ✅ | – (out-of-profile) | – (out-of-profile) |
+| `approval-payload.test.ts` | ✅ | ✅ (shape only) | ✅ (shape only) |
+| `pack-registry.test.ts` | ✅ | – (out-of-profile, partial absence-fallback) | – (out-of-profile, partial absence-fallback) |
+| `pack-registry-publish.test.ts` | ✅ | ✅ (skip-eq) | ✅ (skip-eq) |
+| `maliciousManifest.test.ts` | ✅ | ✅ | ✅ |
+| `stream-modes.test.ts` | ✅ | ❌ (3/4) | ❌ (3/4) |
+| `stream-modes-buffer.test.ts` | ✅ | ❌ (1/4) | ❌ (1/4) |
+| `stream-modes-mixed.test.ts` | ✅ | ❌ (2/4) | ❌ (2/4) |
+| `identity-passthrough.test.ts` | ✅ | ❌ | ❌ |
 
 **Summary:**
 
-- **MyndHyve:** All scenarios pass (suite version 1.10.0). Reference deployment at Cloud Run rev `workflow-runtime-00066-hom` (per `WOP-PHASED-DELIVERY.md §8`).
-- **In-memory:** 16/30 files fully pass; 14 with at least one failure. Of the 14, 8 are out-of-profile (host doesn't claim the profile the scenarios gate on); 4 are within-profile but minor (event-shape gap, SSE buffering); 2 have partial passes. See `examples/hosts/in-memory/conformance.md` for the full per-file record.
-- **SQLite:** Not yet implemented. LT2.3 follow-up.
+- **MyndHyve:** All scenarios pass (suite version 1.12.0). Reference deployment at Cloud Run rev `workflow-runtime-00066-hom` (per `WOP-PHASED-DELIVERY.md §8`).
+- **In-memory:** 22/36 files fully pass; 14 with at least one failure. Of the 14, 8 are out-of-profile (host doesn't claim the profile the scenarios gate on); 4 are within-profile but minor (event-shape gap, SSE buffering); 2 have partial passes. See `examples/hosts/in-memory/conformance.md` for the full per-file record.
+- **SQLite:** 22/36 files fully pass (same shape as in-memory; +1 net pass-count from durability). The protocol's first non-MyndHyve **durable** WOP host. Demonstrates run + event persistence across process restart, claim-acquisition, idempotency-cache durability. See `examples/hosts/sqlite/conformance.md`.
 
 ## Glossary
 

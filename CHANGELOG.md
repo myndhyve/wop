@@ -45,6 +45,48 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — LT2.3 + LT2.4 — SQLite reference host + "build your own host" walkthrough
+
+Lands LT2.3 + LT2.4 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md` (MyndHyve-side). The protocol's **first non-MyndHyve durable WOP host**.
+
+**LT2.3 — `examples/hosts/sqlite/`**:
+
+Single-process, ~700 LOC, single external dep (`better-sqlite3`). Implements all the same routes as the in-memory host (`/.well-known/wop` · `POST /v1/runs` · `GET /v1/runs/{runId}` · `cancel` · SSE events · poll events · debug-bundle) but every state transition writes through SQLite WAL. Runs + events + idempotency cache survive process restart.
+
+**Schema** — 3 tables: `runs` (with `claim_holder_id` + `claim_expires_at` for cross-process safety), `events` (composite PK `(run_id, seq)` for monotonic ordering), `idempotency` (Layer-1 cache with `body_hash` for 409-on-conflict). Translates verbatim to Postgres / DynamoDB / Cassandra.
+
+**Claim acquisition** — `UPDATE runs SET claim_holder_id = ? WHERE claim_holder_id IS NULL OR claim_expires_at < now`. SQL UPDATE returns affected-row-count: 1 = won, 0 = contended. 30-second TTL. Pattern translates to `SELECT FOR UPDATE SKIP LOCKED` (Postgres), conditional UPDATE (DynamoDB), `SET NX EX` (Redis).
+
+**Profile claim**: `wop-core` + `wop-stream-sse` + `wop-stream-poll`. Scale claim: `minimal` (single-writer SQLite). Advertises `debugBundle.supported: true`.
+
+**Conformance** (`examples/hosts/sqlite/conformance.md`): **22/36 files fully pass / 166/224 tests pass** vs in-memory's 22/36 files / 163/221 tests. Same shape — same out-of-profile gaps, same within-profile event-shape gap. The +3 net comes from the additional scenarios that landed in LT4-6 (idempotencyRetry, debugBundle, etc.).
+
+**Durability proof** — README walks through stop-server-mid-run → restart → events still readable from SQLite file. The in-memory host can't demonstrate this property; the SQLite host is the cheapest possible proof of "wire contract is independent of storage layer."
+
+**LT2.4 — README walkthrough doubles as the "Build Your Own Host" guide**:
+
+Eight-section guided reading of `src/server.ts`: Schema · Event log is source of truth · Claim acquisition · Run execution · Idempotency · HTTP layer · SSE event stream · Graceful shutdown. Each section names the equivalent translation for Postgres / DynamoDB / Cassandra so a reader can swap storage backends without changing the wire contract. Also lists 5 concrete next-steps (Postgres swap · heartbeating · resume-on-startup · real auth · adding profiles).
+
+**INTEROP-MATRIX.md** updated:
+- 3rd row added for SQLite host with full per-scenario pass/fail.
+- Glossary preserved; row-add procedure unchanged.
+- Suite version reference bumped 1.10.0 → 1.12.0.
+
+**Validation:**
+- SQLite host typechecks under strict + exactOptionalPropertyTypes.
+- `npm start` boots, accepts requests, persists runs to `./data/wop-host.sqlite`.
+- Stop-restart-poll preserves run + events.
+- Full conformance suite against live host: 166/224 tests pass.
+- CI gate `scripts/wop-check.sh` 8/8 green.
+
+**Out of scope (deferred):**
+- Resume-on-startup (auto-pickup of orphaned runs whose claim has expired). Would demonstrate LT3.5 stale-claim semantics.
+- Heartbeat renewal (claim_expires_at refresh while a long run is mid-execution).
+- Postgres adapter (one driver swap; another `INTEROP-MATRIX.md` row).
+- Multi-tenancy.
+
+The remaining LT3.1 / LT3.2 / LT3.4 / LT3.5 timing-sensitive scenarios are gated on this host's resume-on-startup behavior plus a multi-process orchestrator. Successor session.
+
 ### 2026-05-01 — LT6 — DX & positioning: 10-min quickstart + 3 examples + 3 spec docs + CI gate
 
 Lands LT6.1 + LT6.2 (partial: 3 of 7) + LT6.3 + LT6.4 + LT6.5 + LT6.6 + LT6.7 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md`. Documentation + examples + GitHub Actions; no wire-shape change, no schema modifications, no SDK changes, no conformance scenario changes.
