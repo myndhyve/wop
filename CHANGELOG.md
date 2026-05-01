@@ -45,6 +45,27 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — Conformance suite 1.11.0 — LT3 partial (5 of 9 adversarial scenarios)
+
+Lands LT3.3 + LT3.6 + LT3.7 + LT3.8 + LT3.9 + LT3.10 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md` (MyndHyve-side). LT3.1 (replayDeterminism) + LT3.2 (interruptRace) + LT3.4 (streamReconnect) + LT3.5 (staleClaim) deferred to a successor session — they involve heavy state machines or multi-host coordination beyond what one session ships well.
+
+**5 new conformance scenario files** under `conformance/src/scenarios/`:
+
+- `idempotencyRetry.test.ts` (LT3.6) — RFC 0002 (Draft) contracts: `WOP-Idempotent-Replay` header semantics, 5-retry budget at 100ms cadence per `scale-profiles.md §Retry semantics`, optional `limits.idempotencyAckTimeoutSec` ≥ 5 contract.
+- `redactionAdversarial.test.ts` (LT3.7) — extends `redaction.test.ts` with canary injection through workflow inputs, error-envelope echo paths, and embedded entropy-shape strings. Cross-references `SECURITY/invariants.yaml` `secret-leakage-eventlog-payload` + `secret-leakage-error-envelope`.
+- `providerPolicyEnforcement.test.ts` (LT3.8) — extends `policies.test.ts` with closed-mode-set verification, `restricted` ⇒ `optional` requirement, `errorCode` shape contract. Cross-references `SECURITY/invariants.yaml` `provider-policy-pre-dispatch` + `provider-policy-restricted-glob`.
+- `maliciousManifest.test.ts` (LT3.9) — pack-registry rejection paths: bad pack names, bad versions, signature-not-available shape per `myndhyve/wop@434c8f2`. Skip-equivalent on hosts that don't claim `wop-node-packs`. Cross-references `SECURITY/invariants.yaml` `node-pack-manifest-name-match` + `node-pack-path-traversal`.
+- `eventOrdering.test.ts` (LT3.3) — polling order monotonicity, repeated-poll stability for terminal runs, exactly-one-terminal-event invariant, terminal-event-is-last. Permissive on `seq` vs `sequence` field naming until version-negotiation convergence (LT2 v0.2 follow-up).
+
+**Suite version bumped** `@myndhyve/wop-conformance@1.10.0 → 1.11.0` (LT3.10).
+
+**Validation:**
+- All 20 new scenarios pass against the in-memory reference host.
+- Full suite against in-memory host: **155/213 pass** (was 135/193 pre-LT3); gained 5 scenario files + 20 tests; net pass-count up exactly 20.
+- Surfaced one defect in the in-memory host: 404 `workflow_not_found` was echoing user-supplied `workflowId` verbatim, leaking JWT-shaped canaries. Fixed in same commit by removing the echo — the message no longer interpolates user input.
+
+LT3.1/3.2/3.4/3.5 (replay-determinism, interrupt-race, stream-reconnect, stale-claim) intentionally deferred — each requires either heavy host-side support (replay) or wall-clock timing harnesses (timing-sensitive). Tagged for a successor session.
+
 ### 2026-05-01 — In-memory reference host + INTEROP-MATRIX
 
 Lands LT2.1, LT2.2, and LT2.5 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md` (MyndHyve-side). LT2.3 (SQLite host) and LT2.4 ("build your own host" walkthrough) deferred to a successor session.

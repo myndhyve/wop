@@ -426,7 +426,11 @@ async function handleCreateRun(req: IncomingMessage, res: ServerResponse): Promi
 
   const workflow = workflows.get(parsed.workflowId);
   if (!workflow) {
-    sendError(res, 404, 'workflow_not_found', `Unknown workflowId: ${parsed.workflowId}`);
+    // Per SECURITY/invariants.yaml `secret-leakage-error-envelope`:
+    // don't echo user-supplied input verbatim in error messages.
+    // Workflow IDs aren't credentials, but reflexively echoing inputs
+    // is a class of leak the redaction discipline should prevent.
+    sendError(res, 404, 'workflow_not_found', 'Unknown workflowId.');
     return;
   }
 

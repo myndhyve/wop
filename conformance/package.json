@@ -1,7 +1,7 @@
 {
   "name": "@myndhyve/wop-conformance",
-  "version": "1.10.0",
-  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.10.0). 1.10.0 adds pack-registry read-shape scenarios + 19-code PUT publish error-catalog placeholders + a `private.<host>.*`-scoped pack-manifest fixture exercising the widened schema pattern (closes Q6 spec/conformance gap). 1.9.0 adds approval-payload vocabulary scenarios (§7 drift audit closure for Q7) + adopts spec corrections in c0d63ae. 1.8.0 vendored api/openapi.yaml + api/asyncapi.yaml + schemas/*.schema.json into the published tarball.",
+  "version": "1.11.0",
+  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.11.0). 1.11.0 adds LT3 partial: idempotencyRetry (RFC 0002 contracts), redactionAdversarial (canary injection through input surfaces), providerPolicyEnforcement (denial-shape contracts), maliciousManifest (registry rejection paths), eventOrdering (polling order correspondence). 1.10.0 added pack-registry read-shape scenarios + private-scoped pack-manifest fixture. 1.9.0 added approval-payload vocabulary scenarios. 1.8.0 vendored api/openapi.yaml + api/asyncapi.yaml + schemas/*.schema.json into the published tarball.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/myndhyve/wop.git",
