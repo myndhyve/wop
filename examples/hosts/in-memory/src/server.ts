@@ -667,6 +667,15 @@ function handleEventsSse(req: IncomingMessage, res: ServerResponse, runId: strin
     return;
   }
 
+  // Per spec/v1/stream-modes.md §"Reconnection": Last-Event-ID
+  // signals a resumption — replay only events with seq > lastEventId.
+  const lastEventIdHeader = req.headers['last-event-id'];
+  let resumeAfterSeq = -1;
+  if (typeof lastEventIdHeader === 'string') {
+    const parsed = Number(lastEventIdHeader);
+    if (Number.isFinite(parsed)) resumeAfterSeq = parsed;
+  }
+
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -679,8 +688,10 @@ function handleEventsSse(req: IncomingMessage, res: ServerResponse, runId: strin
     res.write(`data: ${JSON.stringify(event)}\n\n`);
   };
 
-  // Replay backlog.
-  for (const event of run.events) writeEvent(event);
+  // Replay backlog filtered by resume point.
+  for (const event of run.events) {
+    if (event.seq > resumeAfterSeq) writeEvent(event);
+  }
 
   // If already terminal, close.
   if (run.status === 'completed' || run.status === 'failed' || run.status === 'cancelled') {

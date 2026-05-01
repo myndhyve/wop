@@ -45,6 +45,36 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — Conformance suite 1.13.0 — LT3 timing-sensitive scenarios + wop-replay-fork profile
+
+Lands LT3.1 + LT3.2 + LT3.4 + LT3.10 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md` (MyndHyve-side). Closes 3 of the 4 originally-deferred timing-sensitive scenarios. LT3.5 staleClaim still deferred — needs SQLite host heartbeat + resume-on-startup work in a successor session.
+
+**3 new conformance scenario files:**
+
+- `streamReconnect.test.ts` (LT3.4) — disconnect mid-stream + reconnect with `Last-Event-ID` MUST resume without loss/duplication. Reconnect after terminal seq closes immediately. Tagged `@timing-sensitive`. Drove a within-profile gap fix in BOTH reference hosts (in-memory + SQLite) — they previously replayed full backlog regardless of `Last-Event-ID`; now they filter `event.seq > resumeAfterSeq`.
+- `replayDeterminism.test.ts` (LT3.1) — gated on `wop-replay-fork` profile. Asserts: same workflow + same inputs across two `mode: 'replay'` forks produce structurally-identical event sequences. Skip-equivalent on hosts that 501 on `replay` mode (e.g., MyndHyve currently — branch mode is live, replay mode is stubbed). Branch mode is permitted to diverge by design (negative-control test).
+- `interruptRace.test.ts` (LT3.2) — gated on `wop-interrupts` profile. Concurrent cancel + resolve at same node MUST resolve to one deterministic outcome (cancelled OR completed). Tagged `@timing-sensitive`. Self-test: cancel of completed run is idempotent (returns 200).
+
+**New compatibility profile: `wop-replay-fork`**:
+
+- Predicate: `replay.supported: true` AND `replay.modes` is non-empty array.
+- Added to `conformance/src/lib/profiles.ts` `PROFILE_NAMES` + `deriveProfiles` + `hasProfile`.
+- Documented in `spec/v1/profiles.md` with full predicate definition and gating note for `replayDeterminism` + `replay-fork` scenarios.
+
+**Reference-host fixes:**
+
+- `examples/hosts/in-memory/src/server.ts` — SSE handler now honors `Last-Event-ID` request header.
+- `examples/hosts/sqlite/src/server.ts` — same fix; passes `resumeAfterSeq` to the SQLite event-read prepared statement.
+
+**Suite bumped 1.12.0 → 1.13.0.**
+
+**Validation:**
+- All 7 new scenarios pass against the SQLite reference host.
+- Full suite against SQLite: 173/231 pass (was 166/224 pre-LT3 phase A); +7 tests, +3 file-passing-count, all from new scenarios.
+- CI gate `scripts/wop-check.sh` 8/8 green.
+
+**LT3.5 (staleClaim) remains deferred** — needs SQLite host heartbeat renewal + resume-on-startup + multi-process orchestrator harness. Sized as a separate session.
+
 ### 2026-05-01 — LT2.3 + LT2.4 — SQLite reference host + "build your own host" walkthrough
 
 Lands LT2.3 + LT2.4 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md` (MyndHyve-side). The protocol's **first non-MyndHyve durable WOP host**.

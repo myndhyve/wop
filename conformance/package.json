@@ -1,7 +1,7 @@
 {
   "name": "@myndhyve/wop-conformance",
-  "version": "1.12.0",
-  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.12.0). 1.12.0 adds LT5: debug-bundle scenario validating GET /v1/runs/{runId}/debug-bundle response shape + invariants + redaction inheritance per spec/v1/debug-bundle.md. 1.11.0 added LT3 partial: idempotencyRetry, redactionAdversarial, providerPolicyEnforcement, maliciousManifest, eventOrdering. 1.10.0 added pack-registry read-shape scenarios + private-scoped pack-manifest fixture. 1.9.0 added approval-payload vocabulary scenarios. 1.8.0 vendored api/openapi.yaml + api/asyncapi.yaml + schemas/*.schema.json into the published tarball.",
+  "version": "1.13.0",
+  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.13.0). 1.13.0 adds LT3 timing-sensitive scenarios: streamReconnect (Last-Event-ID resume), replayDeterminism (gated on wop-replay-fork profile), interruptRace (concurrent cancel + resolve dispatch). New profile: wop-replay-fork. 1.12.0 added LT5 debug-bundle. 1.11.0 added LT3 partial: idempotencyRetry, redactionAdversarial, providerPolicyEnforcement, maliciousManifest, eventOrdering. 1.10.0 added pack-registry read-shape scenarios + private-scoped pack-manifest fixture. 1.9.0 added approval-payload vocabulary scenarios. 1.8.0 vendored api/openapi.yaml + api/asyncapi.yaml + schemas/*.schema.json into the published tarball.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/myndhyve/wop.git",

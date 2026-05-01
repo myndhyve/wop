@@ -28,6 +28,7 @@ export const PROFILE_NAMES = [
   'wop-secrets',
   'wop-provider-policy',
   'wop-node-packs',
+  'wop-replay-fork',
 ] as const;
 
 export type ProfileName = (typeof PROFILE_NAMES)[number];
@@ -60,6 +61,11 @@ export interface DiscoveryPayload {
       modes?: unknown;
       [key: string]: unknown;
     };
+    [key: string]: unknown;
+  };
+  replay?: {
+    supported?: unknown;
+    modes?: unknown;
     [key: string]: unknown;
   };
   [key: string]: unknown;
@@ -169,6 +175,23 @@ export function isNodePacksDiscovery(c: DiscoveryPayload): boolean {
 }
 
 /**
+ * `wop-replay-fork` predicate. Host advertises `replay.supported: true`
+ * with at least one entry in `replay.modes`. Runtime determinism /
+ * branch behavior is verified by `replayDeterminism.test.ts` and
+ * `replay-fork.test.ts`.
+ *
+ * @see spec/v1/profiles.md §`wop-replay-fork`
+ * @see spec/v1/replay.md
+ */
+export function isReplayFork(c: DiscoveryPayload): boolean {
+  if (!isCore(c)) return false;
+  if (c.replay == null || typeof c.replay !== 'object') return false;
+  if (c.replay.supported !== true) return false;
+  if (!isStringArray(c.replay.modes)) return false;
+  return c.replay.modes.length > 0;
+}
+
+/**
  * Derive the full profile set from a discovery payload.
  *
  * Returns a set sorted by `PROFILE_NAMES` order so output is stable
@@ -183,6 +206,7 @@ export function deriveProfiles(c: DiscoveryPayload): readonly ProfileName[] {
   if (isSecrets(c)) result.push('wop-secrets');
   if (isProviderPolicy(c)) result.push('wop-provider-policy');
   if (isNodePacksDiscovery(c)) result.push('wop-node-packs');
+  if (isReplayFork(c)) result.push('wop-replay-fork');
   return result;
 }
 
@@ -205,5 +229,7 @@ export function hasProfile(c: DiscoveryPayload, profile: ProfileName): boolean {
       return isProviderPolicy(c);
     case 'wop-node-packs':
       return isNodePacksDiscovery(c);
+    case 'wop-replay-fork':
+      return isReplayFork(c);
   }
 }

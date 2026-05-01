@@ -696,6 +696,15 @@ function handleEventsSse(req: IncomingMessage, res: ServerResponse, runId: strin
     return;
   }
 
+  // Per spec/v1/stream-modes.md §"Reconnection": Last-Event-ID signals
+  // a resumption — replay only events with seq > lastEventId.
+  const lastEventIdHeader = req.headers['last-event-id'];
+  let resumeAfterSeq = -1;
+  if (typeof lastEventIdHeader === 'string') {
+    const parsed = Number(lastEventIdHeader);
+    if (Number.isFinite(parsed)) resumeAfterSeq = parsed;
+  }
+
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -708,7 +717,7 @@ function handleEventsSse(req: IncomingMessage, res: ServerResponse, runId: strin
     res.write(`data: ${JSON.stringify(event)}\n\n`);
   };
 
-  const backlog = stmts.getEventsAfter.all(runId, -1) as EventRow[];
+  const backlog = stmts.getEventsAfter.all(runId, resumeAfterSeq) as EventRow[];
   for (const r of backlog) {
     writeEvent({
       seq: r.seq,

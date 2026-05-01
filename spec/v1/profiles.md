@@ -138,6 +138,25 @@ wop-provider-policy(c) :=
 
 The conformance suite verifies enforcement against the runtime; discovery-payload predicates prove the host advertises the contract.
 
+### `wop-replay-fork`
+
+The host implements `POST /v1/runs/{runId}:fork` per `replay.md`.
+
+**Requirements:** `replay.supported: true` AND `replay.modes` is a non-empty array. Conventional values for `replay.modes`: `'replay'` (deterministic re-execution from `fromSeq`), `'branch'` (divergent execution with optional `runOptionsOverlay`). A host that supports only `branch` mode satisfies the discovery predicate; `replayDeterminism.test.ts` skip-equivalents at runtime if `'replay'` mode is absent or stubbed.
+
+**Predicate:**
+
+```
+wop-replay-fork(c) :=
+     wop-core(c)
+  && c.replay != null
+  && c.replay.supported === true
+  && Array.isArray(c.replay.modes)
+  && c.replay.modes.length > 0
+```
+
+This profile gates `replayDeterminism.test.ts` (LT3.1) + the existing `replay-fork.test.ts` scenarios. Hosts MAY support either or both modes; the conformance scenarios pass on whichever mode the host advertises.
+
 ### `wop-node-packs`
 
 The host serves a node-pack registry per `node-packs.md` §"Registry HTTP API."
@@ -169,6 +188,7 @@ profiles(c) := {
   'wop-secrets'        if wop-secrets(c),
   'wop-provider-policy' if wop-provider-policy(c),
   'wop-node-packs'     if wop-node-packs-discovery(c),
+  'wop-replay-fork'    if wop-replay-fork(c),
 }
 ```
 
