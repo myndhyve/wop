@@ -45,6 +45,32 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — In-memory reference host + INTEROP-MATRIX
+
+Lands LT2.1, LT2.2, and LT2.5 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md` (MyndHyve-side). LT2.3 (SQLite host) and LT2.4 ("build your own host" walkthrough) deferred to a successor session.
+
+**In-memory reference host** (new `examples/hosts/in-memory/`):
+
+Single-process, single-file (~570 LOC) WOP v1 server using only Node stdlib. Zero runtime dependencies. Implements `/.well-known/wop`, `/v1/openapi.json`, `POST /v1/runs` (with Layer-1 idempotency + 409-on-body-conflict per `idempotency.md`), `GET /v1/runs/{runId}` (snapshot), `POST /v1/runs/{runId}/cancel`, `GET /v1/runs/{runId}/events` (SSE), `GET /v1/runs/{runId}/events/poll` (polling). Loads fixture workflows from `conformance/fixtures/`; executes `core.noop` and `core.delay` node types.
+
+Profile claim: **`wop-core` + `wop-stream-sse` + `wop-stream-poll`** per `spec/v1/profiles.md`. Scale claim: **`minimal`** per `spec/v1/scale-profiles.md`.
+
+This is the protocol's first **non-MyndHyve reference implementation** — closes the "Independent hosts have not yet demonstrated compatible behavior" gap from `WOP_COMPREHENSIVE_ANALYSIS.md` §Interoperability (B-).
+
+**Conformance result** (`examples/hosts/in-memory/conformance.md`):
+
+Per-file pass/fail record against suite version 1.10.0:
+
+- **16 of 30 scenario files fully pass** (135 of 193 tests).
+- 8 files fail because the host doesn't claim the gating profile — out-of-profile, **not** a regression.
+- 4 files have within-profile gaps (event-shape `seq`→`eventId+sequence`, SSE `bufferMs` query forwarding, array `streamMode` parameter handling, identity passthrough). LT2 follow-up for a v0.2 release.
+
+**INTEROP-MATRIX.md** (new at repo root):
+
+Browser-compat-table-style matrix cross-tabulating MyndHyve (production reference) and in-memory (example reference) across all 30 conformance scenario files. Glossary defines "skip-equivalent" and "out-of-profile." Documents the row-add procedure for third-party hosts: "implement → claim profile → run conformance → publish result → open PR."
+
+LT2.3 (SQLite reference host) is the next track and will demonstrate durable execution; LT2.4 README will become the "build your own host" walkthrough.
+
 ### 2026-05-01 — Security threat models + invariants index + CI gate
 
 Lands the LT7.1–LT7.5 deliverables of the post-publication leadership track (per the MyndHyve-side `docs/plans/WOP-LEADERSHIP-TRACK.md`). All changes are documentation + CI gate — no wire-shape change, no schema modifications, no SDK changes. Conformance suite is untouched (existing scenarios are referenced by the new invariants index, no new scenarios in this commit).

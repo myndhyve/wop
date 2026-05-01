@@ -1,0 +1,21 @@
+{
+  "name": "@myndhyve/wop-host-in-memory",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference in-memory WOP host. Minimal, single-process, zero-runtime-deps. NOT FOR PRODUCTION — used for conformance demo + 'build your own host' walkthrough.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
