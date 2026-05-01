@@ -58,6 +58,11 @@ const API_KEY = process.env.WOP_API_KEY ?? 'wop-sqlite-dev-key';
 const DB_PATH = process.env.WOP_SQLITE_PATH ?? join(__dirname, '..', 'data', 'wop-host.sqlite');
 const PROCESS_ID = `host-${randomUUID().slice(0, 8)}`;
 
+// Configurable timing — defaults match production-shaped values; tests
+// pass shorter values to keep the staleClaim scenario fast.
+const CLAIM_TTL_MS = Number(process.env.WOP_CLAIM_TTL_MS ?? 30_000);
+const HEARTBEAT_INTERVAL_MS = Number(process.env.WOP_HEARTBEAT_INTERVAL_MS ?? 10_000);
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type RunStatus =
@@ -172,7 +177,6 @@ const stmts = {
 };
 
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
-const CLAIM_TTL_MS = 30 * 1000;
 
 // ─── In-memory state ─────────────────────────────────────────────────────────
 
@@ -185,6 +189,11 @@ eventBus.setMaxListeners(1000);
 // claimed by ANOTHER process get picked up via the status flip plus
 // claim-stealing on heartbeat lapse.
 const runningAborters = new Map<string, AbortController>();
+
+// Active heartbeat handles keyed by runId. Each holds the setInterval
+// timer that renews `claim_expires_at` while this process executes the
+// run. Cleared on terminal status.
+const runningHeartbeats = new Map<string, NodeJS.Timeout>();
 
 // ─── Fixture loading ─────────────────────────────────────────────────────────
 
@@ -283,6 +292,43 @@ function tryClaim(runId: string): boolean {
   return result.changes === 1;
 }
 
+/**
+ * Start renewing this process's claim on `runId` every
+ * HEARTBEAT_INTERVAL_MS. Called when a run begins execution; cleared
+ * by `stopHeartbeat()` on terminal status.
+ *
+ * Renewal uses the same `acquireClaim` UPDATE statement; the WHERE
+ * clause `(claim_holder_id IS NULL OR claim_expires_at < now)` permits
+ * us to extend our OWN claim because it doesn't fail when the existing
+ * holder is the same process.
+ *
+ * Wait — actually the WHERE clause as written rejects same-holder
+ * renewal once expires_at is set in the future. We use a separate
+ * statement that explicitly matches the holder ID for renewal.
+ */
+const renewClaimStmt = db.prepare(
+  'UPDATE runs SET claim_expires_at = ? WHERE run_id = ? AND claim_holder_id = ?',
+);
+
+function startHeartbeat(runId: string): void {
+  // Defensive: don't double-start.
+  const existing = runningHeartbeats.get(runId);
+  if (existing) clearInterval(existing);
+  const handle = setInterval(() => {
+    renewClaimStmt.run(Date.now() + CLAIM_TTL_MS, runId, PROCESS_ID);
+  }, HEARTBEAT_INTERVAL_MS);
+  // Don't keep the event loop alive solely on the heartbeat — let the
+  // HTTP server be the keepalive.
+  if (typeof handle.unref === 'function') handle.unref();
+  runningHeartbeats.set(runId, handle);
+}
+
+function stopHeartbeat(runId: string): void {
+  const handle = runningHeartbeats.get(runId);
+  if (handle) clearInterval(handle);
+  runningHeartbeats.delete(runId);
+}
+
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) return reject(new Error('aborted'));
@@ -375,10 +421,21 @@ async function runWorkflow(runId: string): Promise<void> {
   const inputs = JSON.parse(row.inputs_json) as Record<string, unknown>;
   const aborter = new AbortController();
   runningAborters.set(runId, aborter);
+  startHeartbeat(runId);
 
   try {
+    // `run.started` is emitted only on FIRST execution. If we're
+    // resuming an orphaned run, the prior process already wrote
+    // `run.started`; emit a `run.resumed` event so observers can see
+    // the handover.
+    const startEvents = stmts.getEventsAfter.all(runId, -1) as EventRow[];
+    const alreadyStarted = startEvents.some((e) => e.type === 'run.started');
     stmts.updateRunStatus.run('running', null, null, runId);
-    appendEvent(runId, 'run.started');
+    if (!alreadyStarted) {
+      appendEvent(runId, 'run.started');
+    } else {
+      appendEvent(runId, 'run.resumed', { data: { resumedBy: PROCESS_ID } });
+    }
 
     for (const node of workflow.nodes) {
       const refreshed = loadRun(runId);
@@ -420,6 +477,7 @@ async function runWorkflow(runId: string): Promise<void> {
     setRunTerminal(runId, 'failed', error);
   } finally {
     runningAborters.delete(runId);
+    stopHeartbeat(runId);
   }
 }
 
@@ -824,9 +882,50 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   sendError(res, 404, 'not_found', `No route for ${method} ${path}`);
 }
 
+/**
+ * Scan for orphaned runs at startup. Per spec/v1/scale-profiles.md
+ * §"Replay semantics" + LT3.5 — when a process holding a claim dies
+ * without releasing it, the claim expires after CLAIM_TTL_MS. Another
+ * process restarting the host then picks up these orphans and resumes
+ * execution.
+ *
+ * Orphan = status IN ('pending', 'running') AND
+ *          (claim_holder_id IS NULL OR claim_expires_at < now).
+ */
+const findOrphansStmt = db.prepare(`
+  SELECT run_id FROM runs
+  WHERE status IN ('pending', 'running', 'cancelling')
+    AND (claim_holder_id IS NULL OR claim_expires_at < ?)
+`);
+
+function resumeOrphans(): void {
+  const now = Date.now();
+  const rows = findOrphansStmt.all(now) as Array<{ run_id: string }>;
+  if (rows.length === 0) return;
+
+  let claimed = 0;
+  for (const { run_id: runId } of rows) {
+    if (tryClaim(runId)) {
+      claimed++;
+      void runWorkflow(runId).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        const error = { code: 'internal', message };
+        appendEvent(runId, 'run.failed', { data: error });
+        setRunTerminal(runId, 'failed', error);
+      });
+    }
+  }
+  if (claimed > 0) {
+    console.log(
+      `[wop-host-sqlite] resume-on-startup: claimed ${claimed} of ${rows.length} orphaned run(s)`,
+    );
+  }
+}
+
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 
 loadFixtures();
+resumeOrphans();
 
 const server = createServer((req, res) => {
   void route(req, res).catch((err: unknown) => {
@@ -846,6 +945,8 @@ server.listen(PORT, HOST, () => {
 const shutdown = (): void => {
   console.log(`[wop-host-sqlite] shutting down, releasing claims`);
   for (const [, aborter] of runningAborters) aborter.abort();
+  for (const [, handle] of runningHeartbeats) clearInterval(handle);
+  runningHeartbeats.clear();
   db.exec(`UPDATE runs SET claim_holder_id = NULL WHERE claim_holder_id = '${PROCESS_ID}'`);
   db.close();
   server.close(() => process.exit(0));

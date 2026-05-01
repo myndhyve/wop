@@ -45,6 +45,43 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — LT3.5 staleClaim — heartbeat + resume-on-startup + multi-process scenario (suite 1.14.0)
+
+Closes the FINAL deferred LT3 sub-deliverable. With this commit, **all 9 LT3 scenarios are shipped**.
+
+**SQLite host extensions** (`examples/hosts/sqlite/src/server.ts`):
+- **Heartbeat renewal**: every `WOP_HEARTBEAT_INTERVAL_MS` (default 10s) while a run is mid-execution, the holding process renews `claim_expires_at`. New `renewClaimStmt` + `startHeartbeat()` / `stopHeartbeat()` helpers wired into `runWorkflow()`.
+- **Resume-on-startup**: new `findOrphansStmt` + `resumeOrphans()` runs once at boot. Scans for runs with status IN ('pending','running','cancelling') and either NULL or expired claim; re-acquires + dispatches each.
+- **`run.resumed` event**: when a run already has `run.started` in its log, the resumed execution emits `run.resumed` with `data.resumedBy: <processId>` so observers see the handover.
+- **Configurable timing**: new `WOP_CLAIM_TTL_MS` + `WOP_HEARTBEAT_INTERVAL_MS` env vars. Default values (30s + 10s) match production-shape; the conformance scenario uses 2000ms + 500ms for fast tests.
+- **Graceful shutdown** stops heartbeats before the SIGTERM handler releases claims.
+
+**Multi-process harness** (`conformance/src/lib/multiProcess.ts`):
+- New `spawnHost()` helper using `child_process.spawn` directly (NOT `npm start` — `npm` wrapper PID doesn't propagate SIGKILL to the tsx child). Returns a `SpawnedHost` with `ready()` / `kill()` (SIGKILL — does NOT release claims) / `shutdown()` (SIGTERM — graceful) handles.
+- Repo-root discovery walks up from the lib file until it finds `spec/v1/`.
+- Zero new external deps.
+
+**`staleClaim.test.ts` scenario** (`conformance/src/scenarios/staleClaim.test.ts`):
+- Phase 1: temp dir + shared SQLite DB.
+- Phase 2: spawn host A; start `conformance-cancellable` run with `delayMs: 5000`.
+- Phase 3: poll until status = `running`.
+- Phase 4: SIGKILL host A (claim left as held).
+- Phase 5: wait `CLAIM_TTL_MS + 1000ms` for claim to expire.
+- Phase 6: spawn host B at same DB; resume-on-startup picks up the orphaned run.
+- Phase 7: poll until terminal; assert `completed`.
+- Phase 8: verify event log includes `run.started` (or `run.resumed`).
+- **Opt-in via `WOP_RUN_STALE_CLAIM=1`**. Tagged `@multi-process` + `@timing-sensitive`. Skipped against hosts that don't expose the SQLite-style env-var contract via `WOP_STALE_CLAIM_HOST_DIR`.
+
+**Suite bumped 1.13.0 → 1.14.0**.
+
+**Validation:**
+- `staleClaim.test.ts` passes end-to-end in ~5.7s against the SQLite reference host.
+- Full suite vs SQLite (without `WOP_RUN_STALE_CLAIM`): 173/231 pass — staleClaim skipped per opt-in gate.
+- Full suite with `WOP_RUN_STALE_CLAIM=1`: 174/233 pass — gains the +1 from staleClaim.
+- CI gate `scripts/wop-check.sh` 8/8 green.
+
+**SQLite host README** updated with manual stale-claim demo + status checkmarks for items 2 + 3 ("heartbeat", "resume-on-startup"). New §"Stale-claim recovery (live)" walks through the test loop.
+
 ### 2026-05-01 — Conformance suite 1.13.0 — LT3 timing-sensitive scenarios + wop-replay-fork profile
 
 Lands LT3.1 + LT3.2 + LT3.4 + LT3.10 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md` (MyndHyve-side). Closes 3 of the 4 originally-deferred timing-sensitive scenarios. LT3.5 staleClaim still deferred — needs SQLite host heartbeat + resume-on-startup work in a successor session.

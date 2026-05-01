@@ -100,9 +100,26 @@ The in-memory host (`examples/hosts/in-memory/`) and SQLite host run nearly the 
 
 The within-profile gaps are identical because both hosts share the same `seq` field naming choice. Closing them in one host should close them in both.
 
+## Stale-claim recovery (live)
+
+`staleClaim.test.ts` (LT3.5) passes against this host. The scenario spawns process A pointing at a temp DB, starts a long-running run, SIGKILLs A, waits for the claim to expire, then spawns process B pointing at the same DB. B's resume-on-startup re-acquires the claim and finishes the run. The event log shows `run.started` (from A) followed by `run.resumed` (from B) followed by the rest of the run's lifecycle.
+
+Run it manually:
+
+```bash
+WOP_RUN_STALE_CLAIM=1 \
+  WOP_BASE_URL=http://127.0.0.1:9999 WOP_API_KEY=irrelevant \
+  npx vitest run src/scenarios/staleClaim.test.ts
+```
+
+(The `WOP_BASE_URL` + `WOP_API_KEY` env vars are required by the conformance suite's standard driver but are not used by this scenario — it spawns its own host processes.)
+
+Typical wall-clock: ~5–8 seconds. The dominant cost is the 5-second `core.delay` re-execution on host B; the spec says nothing about Layer-2 idempotency, so the reference example re-runs the delay from scratch. Production hosts with Layer-2 dedup would skip the already-completed sub-steps.
+
 ## Known follow-ups
 
-1. **Resume-on-startup.** On boot, scan for `runs` with `status='running'` and expired claims; re-acquire and resume from the last event. Demonstrates LT3.5 stale-claim semantics — currently the host just lets these runs sit forever. Single-process model means this never happens unless you Ctrl-C mid-run.
-2. **Heartbeat renewal.** Renew `claim_expires_at` while a run is executing so a process holding a long-running claim doesn't lose it after 30s.
+1. ~~**Resume-on-startup.**~~ ✅ Live as of 2026-05-01 (LT3.5).
+2. ~~**Heartbeat renewal.**~~ ✅ Live as of 2026-05-01 (LT3.5).
 3. **Postgres adapter.** Same schema, swap the DB driver, gain horizontal scale-out. Filed as a future row in `INTEROP-MATRIX.md`.
 4. **Multi-tenancy.** Add `tenant_id` to every table + composite primary keys. Currently single hardcoded tenant.
+5. **Layer-2 idempotency** for non-pure nodes. The reference example only ships pure nodes (`core.noop`, `core.delay`); a fork that adds `core.ai.callPrompt` MUST persist invocation results to dedupe on resume.

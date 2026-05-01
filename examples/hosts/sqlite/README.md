@@ -21,6 +21,8 @@ The server listens on `http://127.0.0.1:3838` by default. SQLite database lives 
 | `WOP_PORT` | `3838` | Bind port (in-memory host uses 3737; SQLite uses 3838 to avoid conflict) |
 | `WOP_API_KEY` | `wop-sqlite-dev-key` | Bearer token |
 | `WOP_SQLITE_PATH` | `./data/wop-host.sqlite` | SQLite file location |
+| `WOP_CLAIM_TTL_MS` | `30000` | Lifetime of a run claim before another process can steal it. Tests use ≤ 2000. |
+| `WOP_HEARTBEAT_INTERVAL_MS` | `10000` | How often a holding process renews `claim_expires_at`. SHOULD be ≤ `WOP_CLAIM_TTL_MS / 2`. |
 
 ## Demonstrate durability
 
@@ -206,14 +208,54 @@ WOP_BASE_URL=http://127.0.0.1:3838 WOP_API_KEY=wop-sqlite-dev-key npx vitest run
 
 See `conformance.md` (alongside this file) for the per-scenario pass/fail record.
 
+## Stale-claim recovery (live as of 2026-05-01)
+
+This host implements **heartbeat renewal + resume-on-startup**, the two halves of stale-claim recovery:
+
+- **Heartbeat.** Every `WOP_HEARTBEAT_INTERVAL_MS` (default 10s) while a run is mid-execution, the holding process renews `claim_expires_at`. As long as the process is alive and writing, the claim stays valid.
+- **Resume on startup.** On boot, before the HTTP server starts accepting traffic, the host scans for runs with `status IN ('pending', 'running', 'cancelling')` AND `claim_holder_id IS NULL OR claim_expires_at < now`. For each, it tries to acquire the claim and dispatch `runWorkflow()`. If `run.started` is already in the event log, the resumed execution emits a `run.resumed` event with `data.resumedBy: <processId>` so observers see the handover.
+
+This unlocks the `staleClaim.test.ts` conformance scenario. Try it manually:
+
+```bash
+# Terminal 1: short TTL so the test is fast
+WOP_PORT=4801 WOP_SQLITE_PATH=/tmp/wop-test.sqlite \
+  WOP_CLAIM_TTL_MS=2000 WOP_HEARTBEAT_INTERVAL_MS=500 \
+  npm start
+# Wait for "listening on" message
+
+# Terminal 2: start a long-running run, then SIGKILL terminal 1
+RUN_ID=$(curl -s -X POST http://127.0.0.1:4801/v1/runs \
+  -H "Authorization: Bearer wop-sqlite-dev-key" \
+  -H "Content-Type: application/json" \
+  -d '{"workflowId":"conformance-cancellable","inputs":{"delayMs":10000}}' \
+  | jq -r '.runId')
+echo "runId: $RUN_ID"
+# Now SIGKILL the host in terminal 1 (or kill -9 by PID).
+
+# Wait 3s for the claim to expire, then start a new host on a different port:
+WOP_PORT=4802 WOP_SQLITE_PATH=/tmp/wop-test.sqlite \
+  WOP_CLAIM_TTL_MS=2000 WOP_HEARTBEAT_INTERVAL_MS=500 \
+  npm start
+# Boot output should include: "resume-on-startup: claimed 1 of 1 orphaned run(s)"
+
+# Confirm B finished what A started:
+curl -s -H "Authorization: Bearer wop-sqlite-dev-key" \
+  "http://127.0.0.1:4802/v1/runs/$RUN_ID/events/poll" | jq '.events[].type'
+# Expected: run.started, node.started, run.resumed, node.completed, run.completed
+```
+
+The host's `core.delay` and `core.noop` nodes are pure — re-executing them after a kill is safe. **A production host with non-pure nodes (LLM calls, payments, emails) MUST persist invocation results before returning to the executor (Layer-2 idempotency per `idempotency.md`)** so a resume after a node-completion event doesn't double-fire side effects. Wiring Layer-2 dedup is host-implementation-defined; this reference example doesn't need it.
+
 ## What's next
 
 If you want to evolve this into a more production-shaped host:
 
 1. **Replace SQLite with Postgres.** `pg` driver; same schema; replace `BEGIN IMMEDIATE` with `SELECT FOR UPDATE SKIP LOCKED`. Now you can run multiple processes against the same DB.
-2. **Add heartbeating.** Renew `claim_expires_at` every 10s while a run is mid-execution. Process crash → claim lapses in 30s → another process picks up.
-3. **Add resume-on-startup.** On boot, scan for `runs` with status `running` whose claim has expired; re-acquire and resume from the last event.
+2. ~~**Add heartbeating.**~~ ✅ Done (LT3.5).
+3. ~~**Add resume-on-startup.**~~ ✅ Done (LT3.5).
 4. **Wire a real auth layer.** JWT verification, scope checks, tenant isolation.
 5. **Add the missing profiles.** This host claims `wop-core` + `wop-stream-{sse,poll}` + `wop-debug-bundle`. Add `clarification.request` to `supportedEnvelopes` to claim `wop-interrupts`. Wire `aiProviders.policies` to claim `wop-provider-policy`. Etc.
+6. **Add Layer-2 idempotency** before adding non-pure nodes. Persist invocation results in a separate table; on resume, skip re-execution if the prior result is already recorded.
 
 The wire contract doesn't change as you add capabilities — your discovery payload advertises more, the conformance scenarios that gate on profiles run additional checks, and you're suddenly on multiple rows of `INTEROP-MATRIX.md`.
