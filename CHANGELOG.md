@@ -45,6 +45,46 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — Compatibility profiles + scale profiles + RFC 0002 idempotency-retry
+
+Lands the LT4 deliverables of the post-publication leadership track (per the MyndHyve-side `docs/plans/WOP-LEADERSHIP-TRACK.md`). All changes are additive per `COMPATIBILITY.md` §2.1 — no wire-shape change to `/.well-known/wop`, no schema modifications, no SDK changes. Conformance suite gains 2 new scenario files (25 server-free + N runtime).
+
+**Compatibility profiles** (new spec doc `spec/v1/profiles.md`, DRAFT v1.1):
+
+Closed catalog of 7 v1.x profiles, each defined as a **predicate over existing capability fields** — never declared as a separate wire field. A host that satisfies the predicate AND passes the relevant runtime conformance scenarios is in the profile. Catalog: `wop-core` · `wop-interrupts` · `wop-stream-sse` · `wop-stream-poll` · `wop-secrets` · `wop-provider-policy` · `wop-node-packs`.
+
+Architecture decision recorded in §"Why this is not a wire field": derivation avoids two divergent answers to "what does this host implement," and avoids forcing every host into a Cloud Run redeploy.
+
+**Profile derivation** (new conformance lib `conformance/src/lib/profiles.ts`):
+
+Single canonical implementation of profile membership. Pure functions `isCore(c)` · `isInterrupts(c)` · `isStreamSse(c)` · `isStreamPoll(c)` · `isSecrets(c)` · `isProviderPolicy(c)` · `isNodePacksDiscovery(c)`, plus `deriveProfiles(c)` that returns the full set in `PROFILE_NAMES` order. SDKs MAY re-export these helpers; no requirement to.
+
+**Profile derivation scenarios** (new `conformance/src/scenarios/profileDerivation.test.ts`):
+
+25 server-free scenarios. Verify deterministic + pure derivation against representative discovery payloads — minimum-conforming, richly-advertised, broken (non-1.x), edge cases (empty `supportedEnvelopes`, fractional limits, missing `secrets.scopes` includes user, empty `policies.modes`). Asserts stability across calls, profile-name ordering, and `hasProfile` consistency with `deriveProfiles`.
+
+**Scale profiles** (new spec doc `spec/v1/scale-profiles.md`, DRAFT v1.1):
+
+Three tiers — `minimal` · `production` · `high-throughput` — with normative floors for: concurrent runs in flight (per tenant + global), `POST /v1/runs` p50/p99 latency, event-stream delivery delay, idempotency cache retention, backpressure mechanism, fan-out cap, replay latency. Independent axis from compatibility profiles. Scale profile claims live in host README + `INTEROP-MATRIX.md`; no discovery-payload advertisement.
+
+Adds normative §"Backpressure semantics" (503 + Retry-After body shape), §"Retry semantics" (≥5 retries, ≥100ms apart), §"Fan-out semantics" (cap.breached emission for throttled siblings), §"Replay semantics" (cold-cache replay floor or 501 Not Implemented).
+
+**RFC 0002** (new `RFCS/0002-runs-idempotency-retry.md`, Status: Draft):
+
+First per-boundary normative-semantics RFC. Closes 3 normative gaps in `idempotency.md` for `POST /v1/runs`:
+
+1. Retry-after-timeout dispatch is now deterministic — block-and-replay if original completes within advertised ack timeout, else `409 idempotency_in_flight`.
+2. `WOP-Idempotent-Replay` header promoted from SHOULD to MUST on every keyed response, including explicit `false` for fresh-after-eviction.
+3. Layer-1 vs Layer-2 boundary made explicit — `POST /v1/runs` retries hit Layer 1 only; Layer 2 invocation log is engine-internal per-side-effect dedup.
+
+Adds optional `limits.idempotencyAckTimeoutSec` to `capabilities.schema.json` (additive). 5-second floor. Also formalizes a 5-retry / 100ms-apart retry-budget floor on the server side. RFC currently in 7-day comment window per `RFCS/0001-rfc-process.md`.
+
+**High-concurrency conformance scenarios** (new `conformance/src/scenarios/highConcurrency.test.ts`):
+
+Tagged `@scale-profile-production`. Drives 10 parallel run creations + 5 sequential retries 100ms apart against a live host. Asserts: zero double-execution, deterministic 200/201/409 dispatch, `Retry-After` on rate-limited responses, idempotency cache survives retry storm, host advertises `idempotencyAckTimeoutSec ≥ 5` if the field is present. Skip via `WOP_SKIP_SCALE_PRODUCTION=1` for `minimal` hosts.
+
+**No deploy required.** No wire-shape change in this release; the only schema-adjacent edit is the new optional `limits.idempotencyAckTimeoutSec` field documented in RFC 0002 (additive — existing servers MAY omit). Reference deployment can pick up the conformance scenarios at its own cadence.
+
 ### 2026-05-01 — Governance: formal RFC process, MAINTAINERS, COMPATIBILITY, SECURITY graduation
 
 Lands the LT1 deliverables of the post-publication leadership track (per the MyndHyve-side `docs/plans/WOP-LEADERSHIP-TRACK.md`). All changes are governance / process / docs only — no wire-shape changes, no schema changes, no SDK changes. Conformance suite is untouched.
