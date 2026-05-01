@@ -45,6 +45,41 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — LT5 — Observability events + debug-bundle spec + schema + conformance
+
+Lands LT5.1 + LT5.3 + LT5.4 + LT5.6 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md`. Bumps suite to `@myndhyve/wop-conformance@1.12.0`. LT5.2 rejected as redundant (existing observability.md already covers OTel mapping comprehensively); LT5.5 (Cloud Run endpoint deploy in MyndHyve reference impl) deferred to operator authorization for the workflow-protocol deploy checklist — endpoint added to in-memory reference host instead so LT5.6 conformance scenario runs end-to-end.
+
+**LT5.1 — Canonical run lifecycle event names** (`spec/v1/observability.md`):
+
+New §"Canonical run lifecycle event names" section adds a closed vocabulary table (`run.started` / `run.completed` / `run.failed` / `run.cancelled` / `node.*` / `approval.*` / `clarification.*` / `cap.breached` / `channel.written` / `run.replay.started`) with default severity per event class. Adopts `debug` / `info` / `warn` / `error` four-tier severity vocabulary. Closes the "canonical event names + severity levels" gap from `WOP_COMPREHENSIVE_ANALYSIS.md` §Observability (B-).
+
+**LT5.2 — REJECTED (redundant)**:
+
+Original plan called for a separate `spec/v1/observability-otel.md`. Rejected after audit: existing `spec/v1/observability.md` (FINAL v1.0, 623 lines) already comprehensively covers OTel span attributes, span naming, OTel metrics taxonomy, trace context propagation. A separate doc would duplicate without benefit. Architecture-review-style scope discipline applied.
+
+**LT5.3 — Debug-bundle spec** (new `spec/v1/debug-bundle.md`, DRAFT v1.1):
+
+Defines `GET /v1/runs/{runId}/debug-bundle` — portable JSON export of a single run's diagnostic state (run snapshot + events + spans + metrics + redaction state). Profile-gated on `capabilities.debugBundle.supported: true`. 8 MB default size cap with `truncated: true` overflow signal. Redaction inheritance from the host's harness; `redactionApplied: true` + `redactionMode: passthrough` declared as malformed combination.
+
+**LT5.4 — Debug-bundle JSON schema** (new `schemas/debug-bundle.schema.json`):
+
+Wire-shape contract. Required: `bundleVersion` / `generatedAt` / `host` / `run` / `events` / `redactionApplied` / `redactionMode`. Optional: `spans` / `metrics` / `truncated` / `truncatedReason`. Compiles clean under Ajv2020.
+
+**LT5.5 — In-memory reference host implementation**:
+
+Added `GET /v1/runs/{runId}/debug-bundle` endpoint to `examples/hosts/in-memory/src/server.ts`. Discovery payload now advertises `debugBundle.supported: true`. Reference example omits user-supplied `inputs` from the bundle (advertises `redactionMode: omit`) — a real production host would mask via its redaction harness. **MyndHyve Cloud Run deploy of this endpoint deferred** to operator authorization per CLAUDE.md §"Workflow protocol deploy checklist."
+
+**LT5.6 — Debug-bundle conformance scenario** (new `conformance/src/scenarios/debugBundle.test.ts`):
+
+6 scenarios. (a) Hosts advertising `debugBundle.supported` return 200 with valid bundle; hosts not advertising return 404 — strict skip-equivalent. (b) `metrics.eventCount === events.length` invariant. (c) Malformed `redactionApplied: true` + `redactionMode: passthrough` rejection. (d) Bundle events agree with `/events/poll` for the same run. (e) Canary in workflow inputs MUST NOT echo verbatim — pins `SECURITY/invariants.yaml secret-leakage-debug-bundle`.
+
+`SECURITY/invariants.yaml` updated: `secret-leakage-debug-bundle` test glob migrated from the redaction.test.ts stand-in to the new dedicated `debugBundle.test.ts`.
+
+**Validation:**
+- All 6 new scenarios pass against the in-memory reference host.
+- Full suite against in-memory host: **163/221 pass** (was 155/213 pre-LT5); gained +1 file +8 tests, all passing.
+- CI gate `scripts/wop-check.sh` 8/8 green.
+
 ### 2026-05-01 — Conformance suite 1.11.0 — LT3 partial (5 of 9 adversarial scenarios)
 
 Lands LT3.3 + LT3.6 + LT3.7 + LT3.8 + LT3.9 + LT3.10 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md` (MyndHyve-side). LT3.1 (replayDeterminism) + LT3.2 (interruptRace) + LT3.4 (streamReconnect) + LT3.5 (staleClaim) deferred to a successor session — they involve heavy state machines or multi-host coordination beyond what one session ships well.

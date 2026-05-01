@@ -403,6 +403,9 @@ function handleDiscovery(_req: IncomingMessage, res: ServerResponse): void {
       maxNodeExecutions: 1000,
     },
     supportedTransports: ['rest'],
+    debugBundle: {
+      supported: true,
+    },
   };
   sendJSON(res, 200, payload, { 'Cache-Control': 'public, max-age=300' });
 }
@@ -597,6 +600,64 @@ function handleEventsPoll(
   });
 }
 
+function handleDebugBundle(
+  req: IncomingMessage,
+  res: ServerResponse,
+  runId: string,
+): void {
+  if (!checkAuth(req, res)) return;
+
+  const run = runs.get(runId);
+  if (!run) {
+    sendError(res, 404, 'run_not_found', `Unknown runId: ${runId}`);
+    return;
+  }
+
+  // Per spec/v1/debug-bundle.md — bundle aggregates run snapshot,
+  // events, spans (empty for this host since we don't emit OTel),
+  // metrics, redaction state.
+  const bundle = {
+    bundleVersion: '1.0',
+    generatedAt: new Date().toISOString(),
+    host: {
+      name: 'wop-host-in-memory',
+      version: '0.1.0',
+      vendor: 'wop-spec (reference example)',
+    },
+    run: {
+      runId: run.runId,
+      workflowId: run.workflowId,
+      status: run.status,
+      // Per SECURITY/invariants.yaml secret-leakage-debug-bundle:
+      // bundle inherits redaction. This reference host omits user-
+      // supplied inputs from the bundle entirely — they're still
+      // available via GET /v1/runs/{runId} for clients that need
+      // them. A production host with a real redaction harness can
+      // include masked inputs here.
+      inputs: {},
+      startedAt: run.startedAt,
+      endedAt: run.endedAt,
+      ...(run.error ? { error: run.error } : {}),
+      variables: {},
+    },
+    events: run.events.map((e) => ({
+      sequence: e.seq,
+      type: e.type,
+      timestamp: e.timestamp,
+      nodeId: e.nodeId ?? null,
+      data: e.data ?? null,
+    })),
+    spans: [] as unknown[],
+    metrics: {
+      nodeCount: new Set(run.events.filter((e) => e.nodeId !== undefined).map((e) => e.nodeId)).size,
+      eventCount: run.events.length,
+    },
+    redactionApplied: true,
+    redactionMode: 'omit' as const,
+  };
+  sendJSON(res, 200, bundle, { 'Cache-Control': 'no-store' });
+}
+
 function handleEventsSse(req: IncomingMessage, res: ServerResponse, runId: string): void {
   if (!checkAuth(req, res)) return;
 
@@ -647,6 +708,7 @@ const RUN_ID_PATTERN = /^\/v1\/runs\/([^/]+)$/;
 const RUN_CANCEL_PATTERN = /^\/v1\/runs\/([^/]+)\/cancel$/;
 const RUN_EVENTS_POLL_PATTERN = /^\/v1\/runs\/([^/]+)\/events\/poll$/;
 const RUN_EVENTS_SSE_PATTERN = /^\/v1\/runs\/([^/]+)\/events$/;
+const RUN_DEBUG_BUNDLE_PATTERN = /^\/v1\/runs\/([^/]+)\/debug-bundle$/;
 
 async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
@@ -668,6 +730,9 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
   m = RUN_EVENTS_SSE_PATTERN.exec(path);
   if (m && method === 'GET') return handleEventsSse(req, res, m[1]!);
+
+  m = RUN_DEBUG_BUNDLE_PATTERN.exec(path);
+  if (m && method === 'GET') return handleDebugBundle(req, res, m[1]!);
 
   m = RUN_CANCEL_PATTERN.exec(path);
   if (m && method === 'POST') return handleCancelRun(req, res, m[1]!);

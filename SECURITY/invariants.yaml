@@ -98,12 +98,13 @@ invariants:
     severity: high
     threat_model: SECURITY/threat-model-secret-leakage.md
     tests:
-      - conformance/src/scenarios/redaction.test.ts
+      - conformance/src/scenarios/debugBundle.test.ts
     note: |
-      Debug bundles inherit redaction. Direct conformance scenario
-      pending LT5 (debug-bundle endpoint definition); for now, redaction
-      coverage on the existing surfaces stands in. Migrate to
-      `debugBundle.test.ts` (LT5.6) when that scenario lands.
+      Debug bundles inherit redaction per spec/v1/debug-bundle.md
+      §"Redaction guarantees". Dedicated conformance scenario landed
+      under LT5.6 (suite v1.12.0); plants a BYOK-shaped canary in
+      workflow inputs and asserts it does not appear verbatim in the
+      bundle response.
 
   - id: secret-leakage-debug-bundle-otel
     tier: reference-impl

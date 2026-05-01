@@ -156,6 +156,38 @@ Cross-link with `channels-and-reducers.md` §Distributed reducers: a child run's
 
 ---
 
+## Canonical run lifecycle event names (LT5.1)
+
+A WOP-compliant server emits run-lifecycle events through the event log (`GET /v1/runs/{runId}/events*`) and through structured logs / OTel spans. The wire-level event-type names form a closed vocabulary that external clients and SDKs can rely on:
+
+| Event type | When | Default severity | Required |
+|---|---|---|---|
+| `run.started` | Run transitions from `pending` to `running` | `info` | MUST |
+| `run.completed` | Run reaches terminal `completed` | `info` | MUST |
+| `run.failed` | Run reaches terminal `failed` | `error` | MUST |
+| `run.cancelled` | Run reaches terminal `cancelled` | `info` | MUST |
+| `node.started` | Node execution begins | `debug` | SHOULD |
+| `node.completed` | Node execution succeeds | `debug` | SHOULD |
+| `node.failed` | Node execution fails (terminal for the node) | `error` | SHOULD |
+| `node.cancelled` | Node execution stops via cancel | `info` | SHOULD |
+| `approval.requested` | HITL approval gate opens | `info` | SHOULD (if `wop-interrupts`) |
+| `approval.received` | HITL approval resolved | `info` | SHOULD (if `wop-interrupts`) |
+| `clarification.requested` | LLM emits a clarification envelope | `info` | SHOULD (if `wop-interrupts`) |
+| `clarification.resolved` | Client provides clarification answer | `info` | SHOULD (if `wop-interrupts`) |
+| `cap.breached` | Engine-enforced limit exceeded | `error` | SHOULD (if `maxNodeExecutions` enforced) |
+| `channel.written` | Channel write succeeds | `debug` | SHOULD (if channels supported) |
+| `run.replay.started` | Replay/fork is initiated | `info` | SHOULD (if `wop-replay`) |
+
+**Severity vocabulary.** WOP adopts the standard four-tier severity model: `debug` / `info` / `warn` / `error`. Severities are advisory — observability platforms apply their own escalation rules — but the defaults above let a downstream consumer treat unrecognized events with conservative severity policy.
+
+**Closed vocabulary.** Hosts MUST NOT emit additional event types under the `run.`, `node.`, `approval.`, `clarification.`, `cap.`, `channel.`, or `replay.` prefixes without an RFC. Vendor-specific events are permitted under namespaced prefixes (e.g., `myndhyve.audit.*`) per `spec/v1/host-extensions.md`.
+
+**Terminal events.** A run MUST emit exactly one of `run.completed` / `run.failed` / `run.cancelled` and that event MUST be the last event in the stream. The conformance scenario `eventOrdering.test.ts` pins this contract.
+
+**Forward-compat.** Clients consuming the event stream MUST treat unknown event types as opaque and continue reading. Hosts MAY add new event types in v1.x if they're additive (no behavior change for clients that ignore the new type) per `COMPATIBILITY.md` §2.1.
+
+---
+
 ## Span naming
 
 A WOP-compliant server SHOULD use these canonical span names. Implementations MAY use additional names outside the `wop.*` prefix.
