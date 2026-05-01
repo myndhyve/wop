@@ -1,74 +1,152 @@
 # SECURITY
 
-> **Status: STUB v1.0 (2026-04-29).** Placeholder for the security-advisory
-> process. The protocol's normative security requirements are specified
-> elsewhere (see `auth.md`, `idempotency.md`, `webhooks.md`); this file
-> exists to give downstream implementors a single place to look up "how
-> do I report a vulnerability in WOP itself?" Once the v1.0 reference
-> implementation has a stable contact channel, this stub will graduate
-> to a full advisory policy. Until then, treat the recommendations below
-> as best-effort guidance, not normative protocol behavior.
+> **Status: v1.0 (2026-05-01).** Vulnerability-disclosure policy for the WOP protocol, reference implementations, conformance suite, and machine-readable contracts. The protocol's normative security requirements are specified in `auth.md`, `idempotency.md`, `webhooks.md`, and per-capability spec docs; this file covers the disclosure process, response SLA, embargo terms, and advisory tracking.
 
-## Reporting
+## 1. Scope
 
-If you discover a vulnerability in:
+This policy covers vulnerabilities in:
 
-- the spec corpus (`spec/v1/`),
-- the reference SDKs (`sdk/{typescript,python,go}/`),
-- the conformance harness (`conformance/`),
-- the schemas, OpenAPI, or AsyncAPI contracts,
+- The spec corpus (`spec/v1/`).
+- The reference SDKs (`sdk/{typescript,python,go}/`).
+- The conformance harness (`conformance/`).
+- The machine-readable contracts (`schemas/`, `api/openapi.yaml`, `api/asyncapi.yaml`).
+- The example reference hosts (`examples/hosts/`) once they ship.
 
-please use one of these two channels:
+Out of scope:
 
-**Preferred — GitHub Security Advisories**
+- Vulnerabilities in third-party WOP-compatible servers, clients, or hosts. Report those to the respective project's security contact. The maintainer set MAY coordinate cross-project disclosure when a vulnerability spans the spec and a third-party implementation.
+- Implementation choices a host makes that are outside the spec's normative requirements. "My host accepts a malformed request" is the host's bug; "the spec requires accepting a malformed request" is a spec bug.
+
+## 2. Reporting channels
+
+### 2.1 Preferred — GitHub Security Advisories
+
 File a private advisory at https://github.com/myndhyve/wop/security/advisories/new. GitHub provides an embargoed working space for coordinated disclosure, CVE coordination, and downstream notification.
 
-**Email fallback — `security@myndhyve.ai`**
-For reporters who prefer email or for non-vulnerability concerns (license violations, attribution disputes, suspected supply-chain issues).
+### 2.2 Email fallback — `security@myndhyve.ai`
 
-**Do not file a public issue** for vulnerabilities — the public issue tracker is not embargoed.
+For reporters who can't or prefer not to use GitHub Security Advisories. The email is monitored by the maintainer set listed in `MAINTAINERS.md`.
 
-## Scope
+### 2.3 Active exploitation
 
-This file covers protocol- and reference-implementation-level
-vulnerabilities only. Vulnerabilities in third-party WOP-compatible
-servers, clients, or hosts are out of scope and should be reported to
-the respective project's security contact.
+If the vulnerability is being actively exploited, file via either channel with subject prefix `[ACTIVE EXPLOIT]`. The maintainer set is paged within the SLA in §3.
 
-For the full normative auth/authorization model, including the bearer
-token format and the canonical 401/403 error envelope, see `auth.md`.
-For idempotent run-creation and tenant isolation, see `idempotency.md`.
-For webhook delivery integrity (HMAC signing, replay prevention), see
-`webhooks.md`.
+### 2.4 Do not file public issues
 
-## Coordinated disclosure
+Do not file public issues for vulnerabilities. The public issue tracker is not embargoed and will leak the report to anyone watching the repository.
 
-Reporters SHOULD allow at least 90 days from initial report before
-publishing details. The advisory team will acknowledge receipt and
-provide a remediation timeline as quickly as resourcing allows. The
-project is in early incubation; firm response-time SLAs will be
-added once a maintainer rotation is in place.
+## 3. Response SLA
 
-If the vulnerability is being actively exploited, file the GitHub Security Advisory or email `security@myndhyve.ai` with the subject prefixed `[ACTIVE EXPLOIT]` so the maintainer set is paged.
+The maintainer set commits to:
 
-## What's tracked
+| Phase | Target |
+|---|---|
+| Acknowledgment of receipt | **3 business days** |
+| Initial triage (severity assessment, scope confirmation, "we'll fix" / "out of scope" / "needs more info") | **10 business days** |
+| Remediation timeline communication | **20 business days** from triage |
+| Coordinated disclosure (per §4) | **90 days** from initial report unless reporter and maintainers agree to extend |
 
-- The advisory team will assign each report a numeric `WOP-SA-YYYY-NNNN`
-  identifier upon triage.
-- Patched releases will reference the advisory ID in `CHANGELOG.md`
-  under a `### Security` heading.
-- A consolidated index of past advisories will live at
-  `security/advisories.md` once the first advisory is
-  resolved.
+The SLA applies to good-faith reports from any reporter. The maintainer set MAY decline to engage with reports that are spam, automated scanner output without proof-of-concept, or known false positives, with a brief explanation to the reporter.
 
-## Retired stubs
+If the SLA cannot be met because the maintainer set is too small or under unusual load, the reporter is notified before the deadline with a revised timeline.
 
-This document will be promoted from STUB to FINAL when:
+## 4. Coordinated disclosure
 
-1. ~~A stable advisory contact channel is in place.~~ **Done 2026-04-29** — GitHub Security Advisories enabled + `security@myndhyve.ai` provisioned.
-2. The first advisory has been triaged end-to-end (acknowledgment →
-   patch → public disclosure → CHANGELOG entry).
-3. The 90-day disclosure window above has been confirmed against the
-   host repository's release cadence.
+The default is **90-day coordinated disclosure** from initial report.
 
-Until then, expect this file to change without major-version bumps.
+- Reporters SHOULD allow at least 90 days before publishing details.
+- Maintainers SHOULD ship a fix or coordinated public advisory within the 90-day window.
+- If the fix requires a `COMPATIBILITY.md` §3 safety-fix break, the embargo MAY extend up to an additional 90 days while implementers operating production deployments prepare migration. The extension is announced to the reporter and to known affected implementers.
+- The reporter and maintainers MAY agree on a shorter or longer window for specific cases (e.g., if remediation requires only an SDK patch, the window may be 30 days).
+- If the maintainer set fails to acknowledge or engage within the §3 SLA, the reporter MAY shorten the embargo to expedite public disclosure. Public disclosure under this clause SHOULD include a brief note that maintainer engagement was the reason.
+
+## 5. CVE coordination
+
+The maintainer set will request CVE IDs through:
+
+- **GitHub Security Advisories** — GitHub is a CVE Numbering Authority (CNA) for projects hosted on GitHub; advisories filed via §2.1 can request a CVE through the GitHub UI.
+- **MITRE direct submission** — for cases where GitHub-issued CVEs aren't appropriate (e.g., the vulnerability spans GitHub-hosted and external code).
+
+The maintainer set does not currently operate as its own CNA. If the project graduates to a working-group model per `GOVERNANCE.md`, becoming a project-level CNA is on the post-working-group consideration list.
+
+## 6. Advisory tracking
+
+### 6.1 Identifiers
+
+Every confirmed vulnerability is assigned a `WOP-SA-YYYY-NNNN` identifier on triage:
+
+- `YYYY` is the year of triage.
+- `NNNN` is a sequential number starting at `0001` per year.
+
+The identifier is used in CHANGELOG entries, CVE submissions, and downstream notification.
+
+### 6.2 Public record
+
+Patched releases reference the advisory ID in `CHANGELOG.md` under a `### Security` heading. A consolidated index of past advisories lives at `security/advisories.md` once the first advisory is resolved (the file is created at first need; absence does not imply zero advisories).
+
+### 6.3 What's published
+
+For each resolved advisory, the public record includes:
+
+- Advisory ID and CVE ID (if assigned).
+- Affected versions.
+- Fixed versions.
+- Severity (CVSS v3.1 base score).
+- Brief description of the impact.
+- Credit to the reporter (with their consent; anonymous credit is the default if consent isn't explicit).
+- Links to the patch commits and any required migration tooling.
+
+What's NOT published:
+
+- Full proof-of-concept exploits.
+- Reporter identifying information without consent.
+- Internal investigation timelines beyond the public-facing dates.
+
+## 7. Safe harbor
+
+The maintainer set commits to not pursue legal action against good-faith security researchers who:
+
+- Make a good-faith effort to follow this disclosure policy.
+- Avoid privacy violations, destruction of data, and disruption of production services during research.
+- Don't exploit the vulnerability beyond what's necessary to demonstrate it.
+- Don't extort or threaten the project or its users.
+
+This safe-harbor commitment binds the maintainer set; it does not bind third-party WOP-compatible hosts. Researchers reporting vulnerabilities in third-party hosts should review the third party's separate disclosure policy.
+
+## 8. Threat model references
+
+WOP threat models live at `SECURITY/threat-model-*.md` and cover specific attack surfaces:
+
+- `SECURITY/threat-model-node-packs.md` — node-pack ecosystem (tampering, sandbox escape, signature substitution).
+- `SECURITY/threat-model-prompt-injection.md` — LLM-mediated workflows (indirect injection, exfiltration, policy bypass).
+- `SECURITY/threat-model-secret-leakage.md` — BYOK secret resolution and redaction invariants.
+- `SECURITY/threat-model-provider-policy.md` — provider-policy bypass paths.
+
+The threat models track invariants in `SECURITY/invariants.yaml`; the CI gate at `scripts/check-security-invariants.sh` verifies each invariant maps to at least one redaction or conformance test.
+
+These artifacts ship as part of LT7 of the post-publication leadership track. Until they land, the threat-model directory is empty and this section's links 404; they're enumerated here so the disclosure policy is forward-compatible.
+
+## 9. External audit
+
+The project intends to commission an external security review before making any "industry standard" claim per `WOP_COMPREHENSIVE_ANALYSIS.md`. The engagement plan lives at `SECURITY/external-audit-engagement.md` once that document lands. Vendor selection criteria: protocol-fluent firm with published reports on similar protocols (browser security, MCP-class APIs, durable execution).
+
+External audit findings are published as advisories under §6 once remediation has shipped.
+
+## 10. Amendments
+
+Changes to this document follow `GOVERNANCE.md` §"Spec change process":
+
+- Editorial changes (typos, link fixes, contact updates) — direct PR with one maintainer approval.
+- Substantive changes to the disclosure process or SLA — file an RFC per `RFCS/0001-rfc-process.md`.
+
+When the SLA is missed in a way that suggests the documented commitment is unrealistic, the maintainer set proactively files an RFC to revise it rather than continuing to miss the documented target.
+
+## 11. References
+
+- `auth.md` — normative auth/authorization model, bearer-token format, 401/403 error envelope.
+- `idempotency.md` — idempotent run creation, tenant isolation.
+- `webhooks.md` — webhook delivery integrity (HMAC signing, replay prevention).
+- `COMPATIBILITY.md` §3 — safety-fix exception that gates security-driven v1.x breaks.
+- `RFCS/0001-rfc-process.md` — formal RFC mechanism used for substantive amendments.
+- `MAINTAINERS.md` — maintainer set who receive disclosures.
+- `GOVERNANCE.md` — broader governance context.

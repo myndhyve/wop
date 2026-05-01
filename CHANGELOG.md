@@ -45,6 +45,34 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-01 — Governance: formal RFC process, MAINTAINERS, COMPATIBILITY, SECURITY graduation
+
+Lands the LT1 deliverables of the post-publication leadership track (per the MyndHyve-side `docs/plans/WOP-LEADERSHIP-TRACK.md`). All changes are governance / process / docs only — no wire-shape changes, no schema changes, no SDK changes. Conformance suite is untouched.
+
+**RFC process** (new):
+- `RFCS/README.md` — process summary, status states, numbering, template requirements.
+- `RFCS/0000-template.md` — authoring template; required sections: summary / motivation / proposal / compatibility / conformance / alternatives / unresolved questions / acceptance criteria.
+- `RFCS/0001-rfc-process.md` — meta-RFC defining the process itself, status `Active`. Subsequent normative spec changes go through this process.
+
+**Compatibility commitment** (new):
+- `COMPATIBILITY.md` — v1.x is **additive-only** by default. One explicit exception: **safety-fix breaks** (CVE-class or correctness fixes that can't be expressed additively) ship under a 90-day public RFC window unless under embargoed disclosure. Everything else that would break v1.0 conformance goes to v2 in parallel.
+- `GOVERNANCE.md` §"Spec change process" updated to reflect the safety-fix category and to point at `RFCS/`.
+
+**Maintainer record** (new):
+- `MAINTAINERS.md` — canonical maintainer set, promotion process, expectations, removal-for-cause rules, affiliation policy. `GOVERNANCE.md` defers to this file for the current set.
+- Lead-maintainer role declared as transitional; replaced by steering-committee vote when path-to-working-group conditions are met.
+
+**SECURITY graduation** (STUB → v1.0):
+- `SECURITY.md` rewritten to v1.0 with explicit response SLA (acknowledgment ≤ 3 business days; triage ≤ 10 business days; coordinated disclosure 90 days), CVE-coordination intent (via GitHub Security Advisories CNA), `WOP-SA-YYYY-NNNN` advisory IDs, safe-harbor commitment, and forward-pointers to LT7 threat-model artifacts.
+
+**Vendor-neutral org migration tripwire** (new):
+- `ROADMAP.md` adds a §"Vendor-neutral org migration" section documenting the move to `wop-spec/wop` as gated on a single tripwire: at least one maintainer not affiliated with the original steward listed in `MAINTAINERS.md`. Recruitment is explicitly out of band.
+
+**Cross-references**:
+- `GOVERNANCE.md` §"See also" added linking to `MAINTAINERS.md`, `RFCS/`, `COMPATIBILITY.md`, `SECURITY.md`, `ROADMAP.md`.
+
+No schema, OpenAPI, AsyncAPI, SDK, or conformance-suite changes. CI gate is unaffected.
+
 ### 2026-04-30 — Document `GET /v1/packs/{name}/-/{version}.sig` + expanded PUT publish error catalog (Q6)
 
 `spec/v1/node-packs.md` §Registry HTTP API.

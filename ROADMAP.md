@@ -68,13 +68,31 @@ Additional SDKs ship only when there is concrete demand. The current set (TS, Py
 | Second independent host implementation | Not started | Needed to graduate to working-group governance per `GOVERNANCE.md`. |
 | Third-party node-pack catalog | Not started | Depends on hosted registry. |
 
+### Vendor-neutral org migration
+
+The repository is currently at `github.com/myndhyve/wop`. Migration to a vendor-neutral org (target name: `wop-spec/wop`) is planned but **not on a calendar schedule**. The migration has a single tripwire:
+
+> **Migration to `wop-spec/wop` is initiated when `MAINTAINERS.md` lists at least one maintainer not affiliated with the original steward (MyndHyve).**
+
+When the tripwire fires, the migration plan is:
+
+1. Open an RFC per `RFCS/0001-rfc-process.md` proposing the new org name and the mechanics (redirect, DNS, package owner transfer, CHANGELOG entry).
+2. Ratify by maintainer lazy consensus (per `GOVERNANCE.md`).
+3. Move the repository; configure `github.com/myndhyve/wop` as a permanent redirect.
+4. Transfer ownership of npm scopes and PyPI/Go module names; old names continue resolving via metadata redirects where the package registry supports it.
+5. Update all in-spec links to the new canonical URL in the next minor release.
+
+Until the tripwire fires, the canonical URL remains `github.com/myndhyve/wop`. External implementers can rely on this URL through any v1.x release; migration will be announced via CHANGELOG, README banner, and direct outreach to known third-party implementers (per `MAINTAINERS.md` if the maintainer set has expanded).
+
+Recruiting external maintainers is **out of band**. `MAINTAINERS.md` documents the criteria and process; this roadmap does not commit to a recruitment timeline.
+
 ## What this roadmap does not commit to
 
 - A specific date for v1.1 or v2.0.
 - Any breaking change to the v1.0 wire contract.
 - Adoption by any specific vendor or platform.
 - Hosting infrastructure on any specific cloud or domain (`packs.wop.dev` is the planned name; the deployment substrate is undecided).
-- Migration of the repository to a different organization on a specific timeline (planned but not scheduled — see `GOVERNANCE.md`).
+- Migration of the repository to a different organization on a specific timeline (planned but not scheduled — gated on the tripwire described above and in `MAINTAINERS.md`).
 
 ## How to influence the roadmap
 

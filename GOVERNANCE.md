@@ -22,18 +22,11 @@ Contributors with merge rights on a defined area of the corpus (e.g., a single S
 
 ### Maintainers
 
-Contributors with merge rights across the corpus and authority to cut releases. The initial maintainer set is:
+Contributors with merge rights across the corpus and authority to cut releases. The canonical maintainer record lives in `MAINTAINERS.md`, which also documents the promotion process, expectations, and removal-for-cause rules. This document defers to `MAINTAINERS.md` for the current set.
 
-- **David Tufts** (@davidscotttufts) — initial steward, MyndHyve
+The **lead maintainer** (first entry in `MAINTAINERS.md`) is the tiebreaker for unresolved disagreement (see "Decision making" below). The lead-maintainer role is transitional and replaced by a steering-committee vote once the path-to-working-group conditions below are met.
 
-New maintainers are appointed by lazy consensus among existing maintainers (see "Decision making" below). Maintainers are expected to:
-
-- Respond to issues and pull requests within five business days.
-- Merge only changes that pass the CI gates listed in `CONTRIBUTING.md`.
-- Follow the spec change process below for any normative change.
-- Disclose conflicts of interest and recuse on relevant decisions.
-
-A maintainer may step down at any time by opening a pull request that updates this file. A maintainer may be removed for sustained inactivity (>6 months) or code-of-conduct violations by lazy consensus of the remaining maintainers.
+New maintainers are appointed by lazy consensus among existing maintainers per `MAINTAINERS.md` §"Promotion process." A maintainer may step down or be removed for cause per `MAINTAINERS.md` §§"Stepping down" and "Removal for cause."
 
 ## Decision making
 
@@ -45,20 +38,24 @@ Tiebreaker for unresolved disagreement: the lead maintainer (the first entry in 
 
 ## Spec change process
 
-Changes are categorized by impact on the wire contract:
+Changes are categorized by impact on the wire contract per `COMPATIBILITY.md`:
 
 | Category | Examples | Process |
 |---|---|---|
 | **Editorial** | Typo fixes, prose clarifications that don't change normative meaning, link fixes | One maintainer approval. Merge directly. |
 | **Non-normative addition** | New examples, new non-normative reference impl notes, new optional capability profiles | One maintainer approval. Merge directly. CHANGELOG entry required. |
-| **Normative addition (backward-compatible)** | New optional fields, new SHOULD recommendations, new event types in additive position | RFC issue + two maintainer approvals + 7-day comment window. CHANGELOG entry. Conformance suite update if applicable. |
-| **Breaking change** | Any change that invalidates an existing v1.0 conformance pass | New major version. Requires public RFC, 30-day comment window, two maintainer approvals from different organizations once that's possible. The v1.0 contract is **locked**; breaking changes ship as v2.0+ in parallel, not as v1.X. |
+| **Normative addition (backward-compatible)** | New optional fields, new SHOULD recommendations, new event types in additive position | RFC required (see `RFCS/`) + two maintainer approvals + 7-day comment window. CHANGELOG entry. Conformance suite update if applicable. |
+| **Safety-fix break** | A correctness or security fix that cannot be expressed additively | RFC required + 90-day public comment window unless under embargoed coordinated disclosure (`SECURITY.md`). Ships with migration tooling. Per `COMPATIBILITY.md` §3 — the only exception to v1.x's additive-only rule. |
+| **Breaking change** | Any other change that invalidates an existing v1.0 conformance pass | New major version. Requires public RFC, 30-day comment window, two maintainer approvals from different organizations once that's possible. The v1.0 contract is **locked**; breaking changes ship as v2.0+ in parallel, not as v1.X. |
+
+The formal RFC mechanism is defined in `RFCS/0001-rfc-process.md`. RFCs live at `RFCS/NNNN-short-title.md`; the authoring template is at `RFCS/0000-template.md`.
 
 Every spec change must:
 
 1. Pass the CI gates documented in `CONTRIBUTING.md` (schema validation, OpenAPI/AsyncAPI lint, link check).
 2. Update the CHANGELOG.
-3. Update `@wop/conformance` if the change introduces new testable behavior. Conformance scenarios for new optional surfaces ship as minor releases of the suite (`1.X.0`) against the unchanged v1.0 protocol.
+3. Update `@myndhyve/wop-conformance` if the change introduces new testable behavior. Conformance scenarios for new optional surfaces ship as minor releases of the suite (`1.X.0`) against the unchanged v1.0 protocol.
+4. For normative-addition, safety-fix, and breaking changes: file an RFC per `RFCS/0001-rfc-process.md` before opening the spec PR.
 
 ## Release process
 
@@ -88,4 +85,12 @@ When those conditions are met, a working group charter will be filed as an RFC a
 
 ## Amendments
 
-This document is amended via the same process as a non-normative addition (one maintainer approval; CHANGELOG entry). Changes that affect the maintainer set or the decision rule require two maintainer approvals.
+This document is amended via the same process as a non-normative addition (one maintainer approval; CHANGELOG entry). Changes that affect the maintainer set or the decision rule require two maintainer approvals **and an RFC** per `RFCS/0001-rfc-process.md`.
+
+## See also
+
+- `MAINTAINERS.md` — current maintainer set, promotion process, removal rules, affiliation policy.
+- `RFCS/` — formal RFC mechanism, including `RFCS/0001-rfc-process.md` (the meta-RFC for the process itself) and `RFCS/0000-template.md` (the authoring template).
+- `COMPATIBILITY.md` — v1.x compatibility commitment + safety-fix exception that gates breaking changes.
+- `SECURITY.md` — vulnerability disclosure process referenced by the safety-fix change category.
+- `ROADMAP.md` — vendor-neutral org migration tripwire that depends on the maintainer set.
