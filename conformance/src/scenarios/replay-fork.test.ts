@@ -13,6 +13,14 @@
  *   - 422 on fromSeq beyond the source run's event log length.
  *   - 400 on `replay` mode with non-empty runOptionsOverlay (per
  *     openapi.yaml — overlay is for branch only).
+ *
+ * Mode-enumeration gating (added 2026-05-02 / suite v1.16.0): tests
+ * are gated on advertised `capabilities.replay.modes` per
+ * `spec/v1/profiles.md` §"wop-replay-fork." A host advertising only
+ * `['branch']` (e.g., MyndHyve) skip-equivalents the replay-mode
+ * tests; a host advertising only `['replay']` skip-equivalents the
+ * branch-mode tests. Hosts that advertise no replay capability at all
+ * skip every test in this file.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -20,6 +28,16 @@ import { driver } from '../lib/driver.js';
 import { pollUntilTerminal } from '../lib/polling.js';
 
 const SOURCE_WORKFLOW_ID = 'conformance-noop';
+
+async function fetchReplayModes(): Promise<readonly string[]> {
+  const res = await driver.get('/.well-known/wop', { authenticated: false });
+  if (res.status !== 200) return [];
+  const caps = (res.json as { capabilities?: { replay?: { supported?: unknown; modes?: unknown } } })
+    ?.capabilities?.replay;
+  if (caps?.supported !== true) return [];
+  if (!Array.isArray(caps.modes)) return [];
+  return caps.modes.filter((m): m is string => typeof m === 'string');
+}
 
 async function startAndFinishNoop(): Promise<string> {
   const create = await driver.post('/v1/runs', { workflowId: SOURCE_WORKFLOW_ID });
@@ -33,6 +51,8 @@ async function startAndFinishNoop(): Promise<string> {
 
 describe('replay: fork from fromSeq=0 in replay mode', () => {
   it('produces a new run that reaches terminal `completed`', async () => {
+    const modes = await fetchReplayModes();
+    if (!modes.includes('replay')) return; // skip-equivalent: host doesn't claim replay-mode
     const sourceRunId = await startAndFinishNoop();
 
     const fork = await driver.post(
@@ -40,6 +60,7 @@ describe('replay: fork from fromSeq=0 in replay mode', () => {
       { fromSeq: 0, mode: 'replay' },
     );
 
+    if (fork.status === 501) return; // mode advertised but not implemented; skip-equivalent
     expect(fork.status, driver.describe(
       'rest-endpoints.md POST /v1/runs/{runId}:fork',
       'fork MUST return 201 on accepted replay',
@@ -68,6 +89,8 @@ describe('replay: fork from fromSeq=0 in replay mode', () => {
 
 describe('replay: fork from fromSeq=0 in branch mode with empty overlay', () => {
   it('produces a new run that reaches terminal `completed`', async () => {
+    const modes = await fetchReplayModes();
+    if (!modes.includes('branch')) return; // skip-equivalent: host doesn't claim branch-mode
     const sourceRunId = await startAndFinishNoop();
 
     const fork = await driver.post(
@@ -75,6 +98,7 @@ describe('replay: fork from fromSeq=0 in branch mode with empty overlay', () => 
       { fromSeq: 0, mode: 'branch', runOptionsOverlay: {} },
     );
 
+    if (fork.status === 501) return; // mode advertised but not implemented; skip-equivalent
     expect(fork.status, driver.describe(
       'rest-endpoints.md POST /v1/runs/{runId}:fork',
       'branch fork MUST return 201',
@@ -90,10 +114,13 @@ describe('replay: fork from fromSeq=0 in branch mode with empty overlay', () => 
 
 describe('replay: validation errors', () => {
   it('rejects negative fromSeq with 400', async () => {
+    const modes = await fetchReplayModes();
+    if (modes.length === 0) return; // skip-equivalent: no replay capability advertised
+    const mode = modes.includes('branch') ? 'branch' : 'replay';
     const sourceRunId = await startAndFinishNoop();
     const res = await driver.post(
       `/v1/runs/${encodeURIComponent(sourceRunId)}:fork`,
-      { fromSeq: -1, mode: 'replay' },
+      { fromSeq: -1, mode },
     );
     expect(res.status, driver.describe(
       'rest-endpoints.md',
@@ -102,12 +129,15 @@ describe('replay: validation errors', () => {
   });
 
   it('rejects fromSeq beyond source event log length with 422', async () => {
+    const modes = await fetchReplayModes();
+    if (modes.length === 0) return; // skip-equivalent
+    const mode = modes.includes('branch') ? 'branch' : 'replay';
     const sourceRunId = await startAndFinishNoop();
     // conformance-noop has at most a handful of events; 99999 is
     // guaranteed to be past the end.
     const res = await driver.post(
       `/v1/runs/${encodeURIComponent(sourceRunId)}:fork`,
-      { fromSeq: 99999, mode: 'replay' },
+      { fromSeq: 99999, mode },
     );
     expect(res.status, driver.describe(
       'rest-endpoints.md POST /v1/runs/{runId}:fork',
@@ -116,6 +146,8 @@ describe('replay: validation errors', () => {
   });
 
   it('rejects replay mode with non-empty runOptionsOverlay (overlay is branch-only)', async () => {
+    const modes = await fetchReplayModes();
+    if (!modes.includes('replay')) return; // skip-equivalent: replay-mode not advertised
     const sourceRunId = await startAndFinishNoop();
     const res = await driver.post(
       `/v1/runs/${encodeURIComponent(sourceRunId)}:fork`,
@@ -132,9 +164,12 @@ describe('replay: validation errors', () => {
   });
 
   it('rejects fork on a non-existent run with 404', async () => {
+    const modes = await fetchReplayModes();
+    if (modes.length === 0) return; // skip-equivalent: no replay capability advertised
+    const mode = modes.includes('branch') ? 'branch' : 'replay';
     const res = await driver.post(
       '/v1/runs/conformance-no-such-run-id:fork',
-      { fromSeq: 0, mode: 'replay' },
+      { fromSeq: 0, mode },
     );
     expect(
       [403, 404].includes(res.status),
