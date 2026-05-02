@@ -45,7 +45,7 @@ The two layer naturally:
 | Workflow execution + state | WOP | Run lifecycle, events, interrupts, replay, observability, conformance |
 | Tool/resource access | MCP | Tool catalog, schema, invocation, result shape |
 
-A WOP host announces MCP-compatibility via `/.well-known/wop`'s `capabilities.mcp` (host-implementation-defined; not a normative WOP field). Workflow authors who depend on MCP tools select hosts that advertise the capability.
+A WOP host announces MCP-compatibility via `/.well-known/wop` — either at the top-level `mcp` slot or under a vendor namespace like `<vendor>.mcp`. Both are host-implementation-defined; not normative WOP fields. The discovery body itself is the capabilities object (there is no `capabilities` envelope — `replay`, `secrets`, `extensions`, etc. all live at the top level). Workflow authors who depend on MCP tools select hosts that advertise the capability.
 
 ---
 
@@ -111,7 +111,7 @@ A WOP host that supports MCP advertises the capability and (per the host's choic
 - The **in-memory reference host** does NOT support MCP — its `core.noop` and `core.delay` nodes don't invoke LLMs at all. A workflow that requires MCP tools fails with `unsupported_node_type` against the in-memory host.
 - A **third-party host** can implement MCP-compatibility independently; the WOP wire contract is unaffected.
 
-As of suite v1.16.0, `mcp-discoverability.test.ts` asserts the shape of any advertised MCP capability: `{supported: boolean, serverUrls: string[]}`. Hosts that don't advertise MCP skip-equivalent. The test accepts both the standard `capabilities.mcp` slot and vendor-namespaced slots like `capabilities.<vendor>.mcp`, since the slot is host-implementation-defined per this section. A future conformance scenario (`mcp-tool-roundtrip.test.ts`, not yet in the suite) would extend this to verify the tool-call round-trip works against any conforming host.
+As of suite v1.16.1, `mcp-discoverability.test.ts` asserts the shape of any advertised MCP capability: `{supported: boolean, serverUrls: string[]}`. Hosts that don't advertise MCP skip-equivalent. The test accepts both the standard top-level `mcp` slot and vendor-namespaced slots like `<vendor>.mcp` (read from the discovery body root, since there is no `capabilities` envelope). A future conformance scenario (`mcp-tool-roundtrip.test.ts`, not yet in the suite) would extend this to verify the tool-call round-trip works against any conforming host.
 
 ---
 

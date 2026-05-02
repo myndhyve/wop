@@ -1,17 +1,21 @@
 /**
  * MCP-discoverability scenarios — added 2026-05-02 / suite v1.16.0.
  *
- * `spec/v1/mcp-integration.md` §"Conformance + interop" calls out
- * `capabilities.mcp` as host-implementation-defined (not a normative
- * WOP field). The spec doesn't prescribe a wire-level MCP integration,
- * but it DOES say a WOP host that supports MCP "advertises the
- * capability and (per the host's choice) lists supported MCP servers."
+ * `spec/v1/mcp-integration.md` §"Conformance + interop" calls out the
+ * MCP slot as host-implementation-defined (not a normative WOP field).
+ * The spec doesn't prescribe a wire-level MCP integration, but it
+ * DOES say a WOP host that supports MCP "advertises the capability
+ * and (per the host's choice) lists supported MCP servers."
+ *
+ * Convention (matches lib/profiles.ts + reference hosts): the
+ * `/.well-known/wop` body itself IS the capabilities object — there
+ * is no `capabilities` envelope. `replay`, `secrets`, `extensions`,
+ * etc. all live at the top level.
  *
  * What this scenario locks in: IF a host advertises MCP-compatibility
- * — under either the standard `capabilities.mcp` slot OR a
- * vendor-namespaced slot like `capabilities.<vendor>.mcp` — it MUST
- * follow a consistent shape so clients can discover serverUrls
- * without per-vendor coupling.
+ * — under either the standard top-level `mcp` slot OR a vendor-
+ * namespaced slot like `<vendor>.mcp` — it MUST follow a consistent
+ * shape so clients can discover serverUrls without per-vendor coupling.
  *
  * Required shape (when advertised):
  *   { supported: boolean, serverUrls: string[] }
@@ -36,18 +40,22 @@ interface DiscoveredMcp {
   ad: McpAdvertisement;
 }
 
-function collectMcpAdvertisements(caps: unknown): DiscoveredMcp[] {
-  if (caps === null || typeof caps !== 'object') return [];
+function collectMcpAdvertisements(discovery: unknown): DiscoveredMcp[] {
+  if (discovery === null || typeof discovery !== 'object') return [];
   const out: DiscoveredMcp[] = [];
-  const capsObj = caps as Record<string, unknown>;
+  const obj = discovery as Record<string, unknown>;
 
-  // Standard slot per mcp-integration.md §"Conformance + interop"
-  if (capsObj.mcp !== null && typeof capsObj.mcp === 'object') {
-    out.push({ path: 'mcp', ad: capsObj.mcp as McpAdvertisement });
+  // Standard slot — top level of the discovery body per
+  // mcp-integration.md §"Conformance + interop"
+  if (obj.mcp !== null && typeof obj.mcp === 'object') {
+    out.push({ path: 'mcp', ad: obj.mcp as McpAdvertisement });
   }
 
-  // Vendor-namespaced slot (host-implementation-defined per spec)
-  for (const [key, value] of Object.entries(capsObj)) {
+  // Vendor-namespaced slot (host-implementation-defined per spec).
+  // Scans every top-level object value for a nested `mcp` field;
+  // false-positive risk is low because non-namespace top-level fields
+  // (limits, schemaVersions, etc.) don't carry an `mcp` key.
+  for (const [key, value] of Object.entries(obj)) {
     if (key === 'mcp') continue;
     if (value === null || typeof value !== 'object') continue;
     const inner = value as Record<string, unknown>;
@@ -61,8 +69,7 @@ function collectMcpAdvertisements(caps: unknown): DiscoveredMcp[] {
 async function fetchMcpAdvertisements(): Promise<DiscoveredMcp[]> {
   const res = await driver.get('/.well-known/wop', { authenticated: false });
   if (res.status !== 200) return [];
-  const caps = (res.json as { capabilities?: unknown })?.capabilities;
-  return collectMcpAdvertisements(caps);
+  return collectMcpAdvertisements(res.json);
 }
 
 describe('mcp: discoverability shape', () => {
@@ -73,25 +80,25 @@ describe('mcp: discoverability shape', () => {
     for (const { path, ad } of advertisements) {
       expect(typeof ad.supported, driver.describe(
         'spec/v1/mcp-integration.md §"Conformance + interop"',
-        `capabilities.${path}.supported MUST be boolean when advertised`,
+        `${path}.supported MUST be boolean when advertised`,
       )).toBe('boolean');
 
       if (ad.supported === true) {
         expect(Array.isArray(ad.serverUrls), driver.describe(
           'spec/v1/mcp-integration.md',
-          `capabilities.${path}.serverUrls MUST be an array when supported:true`,
+          `${path}.serverUrls MUST be an array when supported:true`,
         )).toBe(true);
 
         if (Array.isArray(ad.serverUrls)) {
           expect(ad.serverUrls.length, driver.describe(
             'spec/v1/mcp-integration.md',
-            `capabilities.${path}.serverUrls MUST be non-empty when supported:true`,
+            `${path}.serverUrls MUST be non-empty when supported:true`,
           )).toBeGreaterThan(0);
 
           for (const url of ad.serverUrls) {
             expect(typeof url, driver.describe(
               'spec/v1/mcp-integration.md',
-              `capabilities.${path}.serverUrls entries MUST be strings`,
+              `${path}.serverUrls entries MUST be strings`,
             )).toBe('string');
           }
         }
@@ -114,7 +121,7 @@ describe('mcp: discoverability shape', () => {
         const isAbsoluteHttp = url.startsWith('http://') || url.startsWith('https://');
         expect(isHostRelative || isAbsoluteHttp, driver.describe(
           'spec/v1/mcp-integration.md',
-          `capabilities.${path}.serverUrls entry "${url}" MUST be a leading-slash path or absolute http(s) URL`,
+          `${path}.serverUrls entry "${url}" MUST be a leading-slash path or absolute http(s) URL`,
         )).toBe(true);
       }
     }

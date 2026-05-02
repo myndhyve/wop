@@ -32,11 +32,13 @@ const SOURCE_WORKFLOW_ID = 'conformance-noop';
 async function fetchReplayModes(): Promise<readonly string[]> {
   const res = await driver.get('/.well-known/wop', { authenticated: false });
   if (res.status !== 200) return [];
-  const caps = (res.json as { capabilities?: { replay?: { supported?: unknown; modes?: unknown } } })
-    ?.capabilities?.replay;
-  if (caps?.supported !== true) return [];
-  if (!Array.isArray(caps.modes)) return [];
-  return caps.modes.filter((m): m is string => typeof m === 'string');
+  // Discovery body IS the capabilities object — `replay` lives at the
+  // top level, not under a `capabilities` envelope. Matches the
+  // convention in lib/profiles.ts:isReplayFork() + replayDeterminism.test.ts.
+  const replay = (res.json as { replay?: { supported?: unknown; modes?: unknown } })?.replay;
+  if (replay?.supported !== true) return [];
+  if (!Array.isArray(replay.modes)) return [];
+  return replay.modes.filter((m): m is string => typeof m === 'string');
 }
 
 async function startAndFinishNoop(): Promise<string> {

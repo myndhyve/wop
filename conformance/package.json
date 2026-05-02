@@ -1,7 +1,7 @@
 {
   "name": "@myndhyve/wop-conformance",
-  "version": "1.16.0",
-  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.16.0). 1.16.0 gates replay-fork.test.ts on advertised capabilities.replay.modes (hosts advertising only [branch] now skip-equivalent the replay-mode tests instead of failing) + adds mcp-discoverability.test.ts asserting any advertised capabilities.{*.}mcp follows the {supported, serverUrls} shape per spec/v1/mcp-integration.md. 1.15.0 tightened errors.test.ts to assert additionalProperties:false equivalent + correlationId placement convention. 1.14.0 closed LT3 fully (staleClaim multi-process). 1.13.0 added LT3 timing-sensitive scenarios + wop-replay-fork profile. 1.12.0 added LT5 debug-bundle.",
+  "version": "1.16.1",
+  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.16.1). 1.16.1 fixes a phantom `capabilities` envelope in 1.16.0's replay-fork mode-gate + mcp-discoverability helpers — discovery body is itself the capabilities object (no envelope), so 1.16.0 silently skip-equivalented every test. 1.16.0 gated replay-fork.test.ts on advertised replay.modes + added mcp-discoverability.test.ts (correct now in 1.16.1). 1.15.0 tightened errors.test.ts to assert additionalProperties:false equivalent + correlationId placement convention. 1.14.0 closed LT3 fully (staleClaim multi-process). 1.13.0 added LT3 timing-sensitive scenarios + wop-replay-fork profile. 1.12.0 added LT5 debug-bundle.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/myndhyve/wop.git",
