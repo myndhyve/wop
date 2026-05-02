@@ -6,6 +6,23 @@ This README doubles as the **"Build Your Own Host" walkthrough**: read it top-to
 
 > **Not for production.** This host has no multi-tenancy, no real auth, no production hardening. SQLite is single-writer, so this host is single-process by design. Use it for understanding + reference, not for serving real traffic.
 
+## Contents
+
+- [Quick start](#quick-start) — boot the host
+- [Demonstrate durability](#demonstrate-durability) — kill the process, restart, verify run state survived
+- [Build Your Own Host: the walkthrough](#build-your-own-host-the-walkthrough) — guided 8-section reading of `src/server.ts`
+  1. [Schema](#1-schema)
+  2. [The event log IS the source of truth](#2-the-event-log-is-the-source-of-truth)
+  3. [Claim acquisition](#3-claim-acquisition)
+  4. [Run execution](#4-run-execution)
+  5. [Idempotency](#5-idempotency)
+  6. [The HTTP layer](#6-the-http-layer)
+  7. [SSE event stream](#7-sse-event-stream)
+  8. [Graceful shutdown](#8-graceful-shutdown)
+- [Run conformance against this host](#run-conformance-against-this-host)
+- [Stale-claim recovery (live as of 2026-05-01)](#stale-claim-recovery-live-as-of-2026-05-01)
+- [What's next](#whats-next)
+
 ## Quick start
 
 ```bash

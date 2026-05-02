@@ -21,18 +21,28 @@
 
 import { randomUUID } from 'node:crypto';
 
+// Tiny ANSI helpers — colors when stdout is a TTY, no-op when piped/CI.
+// Skip-equivalent messages are dim; failures red; success green.
+const _tty = process.stdout.isTTY;
+const _c = _tty
+  ? { dim: '\x1b[2m', red: '\x1b[31m', green: '\x1b[32m', reset: '\x1b[0m' }
+  : { dim: '', red: '', green: '', reset: '' };
+const skip = (msg) => console.log(`${_c.dim}${msg}${_c.reset}`);
+const fail = (msg) => console.error(`${_c.red}${msg}${_c.reset}`);
+const ok = (msg) => console.log(`${_c.green}${msg}${_c.reset}`);
+
 const BASE_URL = process.env.WOP_MYNDHYVE_BASE_URL ?? '';
 const API_KEY = process.env.WOP_MYNDHYVE_API_KEY ?? '';
 const WORKFLOW_ID = process.env.WOP_WORKFLOW_ID ?? 'conformance-approval';
 const TERMINAL = new Set(['completed', 'failed', 'cancelled']);
 
 if (!BASE_URL) {
-  console.log('⊘ approval-workflow: WOP_MYNDHYVE_BASE_URL unset — skip-equivalent.');
-  console.log('  Run `WOP_MYNDHYVE_BASE_URL=<url> WOP_MYNDHYVE_API_KEY=<key> npm start` to exercise.');
+  skip('⊘ approval-workflow: WOP_MYNDHYVE_BASE_URL unset — skip-equivalent.');
+  skip('  Run `WOP_MYNDHYVE_BASE_URL=<url> WOP_MYNDHYVE_API_KEY=<key> npm start` to exercise.');
   process.exit(0);
 }
 if (!API_KEY) {
-  console.error('✗ approval-workflow: WOP_MYNDHYVE_API_KEY required when WOP_MYNDHYVE_BASE_URL is set.');
+  fail('✗ approval-workflow: WOP_MYNDHYVE_API_KEY required when WOP_MYNDHYVE_BASE_URL is set.');
   process.exit(1);
 }
 
@@ -91,12 +101,12 @@ async function main() {
   console.log(`→ POST /v1/runs { workflowId: "${WORKFLOW_ID}" }`);
   const create = await http('POST', '/v1/runs', { workflowId: WORKFLOW_ID });
   if (create.status === 404) {
-    console.log(`⊘ Workflow "${WORKFLOW_ID}" not found on this host.`);
-    console.log(`  Set WOP_WORKFLOW_ID to a workflow with an approval gate.`);
+    skip(`⊘ Workflow "${WORKFLOW_ID}" not found on this host.`);
+    skip(`  Set WOP_WORKFLOW_ID to a workflow with an approval gate.`);
     process.exit(0); // skip-equivalent — host doesn't seed this fixture
   }
   if (create.status !== 201) {
-    console.error(`✗ run creation failed: ${create.status} ${JSON.stringify(create.json)}`);
+    fail(`✗ run creation failed: ${create.status} ${JSON.stringify(create.json)}`);
     process.exit(1);
   }
   const { runId } = create.json;
@@ -113,12 +123,12 @@ async function main() {
   );
   if (TERMINAL.has(suspended.status)) {
     // Run already done from a prior CI run (idempotent replay) — that's fine.
-    console.log(`  ✓ Run already terminal: ${suspended.status} (idempotent replay path)`);
+    ok(`  ✓ Run already terminal: ${suspended.status} (idempotent replay path)`);
     process.exit(0);
   }
   const nodeId = suspended.currentNodeId;
   if (typeof nodeId !== 'string' || nodeId.length === 0) {
-    console.error(`✗ Suspended snapshot missing currentNodeId; cannot drive approval.`);
+    fail(`✗ Suspended snapshot missing currentNodeId; cannot drive approval.`);
     process.exit(1);
   }
   console.log(`  ✓ Suspended at node ${nodeId}`);
@@ -130,7 +140,7 @@ async function main() {
     { action: 'accept' },
   );
   if (![200, 202].includes(resolve.status)) {
-    console.error(`✗ approval resolve failed: ${resolve.status} ${JSON.stringify(resolve.json)}`);
+    fail(`✗ approval resolve failed: ${resolve.status} ${JSON.stringify(resolve.json)}`);
     process.exit(1);
   }
   console.log(`  ✓ accept dispatched`);
@@ -143,13 +153,14 @@ async function main() {
   const terminal = await pollUntil(runId, (s) => TERMINAL.has(s.status), { timeoutMs: 60000 });
   console.log(`  ✓ status: ${terminal.status}`);
   if (terminal.status !== 'completed') {
-    console.error(`✗ Expected completed, got ${terminal.status}`);
+    fail(`✗ Expected completed, got ${terminal.status}`);
     process.exit(1);
   }
-  console.log(`✓ Approval workflow round-trip complete`);
+  console.log('');
+  ok(`✓ Approval workflow round-trip complete`);
 }
 
 main().catch((err) => {
-  console.error(`✗ ${err.message}`);
+  fail(`✗ ${err.message}`);
   process.exit(1);
 });

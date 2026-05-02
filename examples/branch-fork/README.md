@@ -6,6 +6,8 @@ Demonstrates `POST /v1/runs/{runId}:fork` with `mode: 'branch'` — diverges a r
 | Host target      | MyndHyve (or any host claiming the profile) |
 | Run modes        | Default (skip-equivalent without `WOP_MYNDHYVE_BASE_URL`) |
 
+> ⚠️ **Skip-equivalent against current MyndHyve canonical deployment.** As of 2026-05-02, MyndHyve doesn't advertise `replay.supported: true` in `/.well-known/wop` despite having the fork route wired. This example detects the missing advertisement and exits 0 with a "skip-equivalent" message. Filed as a follow-up; no code changes needed here once MyndHyve's discovery payload includes the field. See [Known limitations](#known-limitations) below.
+
 ## Branch vs replay — IMPORTANT
 
 The fork endpoint accepts two modes per `spec/v1/replay.md`:

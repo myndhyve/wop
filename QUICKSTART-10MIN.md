@@ -106,20 +106,26 @@ You just ran a WOP workflow. Three HTTP calls. No client library, no schema vali
 
 ## Minute 5–8 — Run the same workflow via the TypeScript SDK
 
-Open another terminal in the same repo:
+In a fresh terminal, build the SDK once and link it locally so any project can import it:
 
 ```bash
+# From wherever you cloned the wop repo:
 cd wop/sdk/typescript
 npm install
 npm run build
+npm link        # registers @myndhyve/wop for local linking
 ```
 
-Then create a tiny script:
+Now create a quickstart project that links to it:
 
 ```bash
 mkdir -p /tmp/wop-quickstart && cd /tmp/wop-quickstart
+npm init -y > /dev/null
+npm pkg set type=module
+npm link @myndhyve/wop
+
 cat > quickstart.mjs <<'EOF'
-import { WopClient } from '/Users/your-username/dev/wop/sdk/typescript/dist/index.js';
+import { WopClient } from '@myndhyve/wop';
 
 const client = new WopClient({
   baseUrl: 'http://127.0.0.1:3737',
@@ -142,6 +148,8 @@ EOF
 
 node quickstart.mjs
 ```
+
+> **Note**: `npm link` is the simplest portable way to run an unpublished local SDK. Once `@myndhyve/wop` is on npm, the `npm link` step disappears in favor of `npm install @myndhyve/wop`.
 
 Output:
 

@@ -9,11 +9,17 @@
 //   2. Construct a manifest under the `private.local-example` scope
 //      (a real public registry won't accept this scope — safe-by-default).
 //   3. Sign the manifest's canonical JSON with the private key.
-//   4. (Optional, --live) PUT the binary tarball + manifest to the
-//      registry at WOP_PACK_REGISTRY_URL with WOP_PACK_PUBLISH_KEY
-//      Bearer auth.
+//   4. (Optional, --print-publish-cmd) print the curl PUT command
+//      that a super-admin operator would run to publish the binary
+//      tarball + manifest to the registry at WOP_PACK_REGISTRY_URL
+//      with WOP_PACK_PUBLISH_KEY Bearer auth.
 //
-// Profile required: wop-node-packs (for --live mode).
+//      The flag was previously named --live; that name implied the
+//      example would do the actual PUT, which it doesn't (the example
+//      doesn't ship a buildable pack source). --live is accepted as
+//      a deprecated alias.
+//
+// Profile required: wop-node-packs (for --print-publish-cmd mode).
 // CI runs --dry-run only.
 //
 // @see spec/v1/node-packs.md §"Manifest format" + §"Registry HTTP API"
@@ -21,8 +27,20 @@
 
 import { generateKeyPairSync, sign as ed25519Sign } from 'node:crypto';
 
+// Tiny ANSI helpers — colors when stdout is a TTY, no-op when piped/CI.
+const _tty = process.stdout.isTTY;
+const _c = _tty
+  ? { dim: '\x1b[2m', red: '\x1b[31m', green: '\x1b[32m', reset: '\x1b[0m' }
+  : { dim: '', red: '', green: '', reset: '' };
+const skip = (msg) => console.log(`${_c.dim}${msg}${_c.reset}`);
+const fail = (msg) => console.error(`${_c.red}${msg}${_c.reset}`);
+const ok = (msg) => console.log(`${_c.green}${msg}${_c.reset}`);
+
 const args = new Set(process.argv.slice(2));
-const LIVE = args.has('--live');
+// `--live` was renamed to `--print-publish-cmd` per code-review #7
+// (the previous --live flag prints documentation, not actual PUT).
+// `--live` is accepted as a deprecated alias.
+const LIVE = args.has('--print-publish-cmd') || args.has('--live');
 
 const REGISTRY_URL = process.env.WOP_PACK_REGISTRY_URL ?? '';
 const PUBLISH_KEY = process.env.WOP_PACK_PUBLISH_KEY ?? '';
@@ -99,25 +117,26 @@ async function dryRun(manifest, signed, publicKey) {
          -H "Authorization: Bearer $WOP_PACK_PUBLISH_KEY" \\
          -H "Content-Type: application/gzip" \\
          --data-binary @pack.tgz`);
-  console.log('  4. Re-run this example with --live to do steps 2-3 automatically.');
+  console.log('  4. Re-run this example with --print-publish-cmd to print');
+  console.log('     the populated curl above; the example does not run the PUT itself.');
   console.log('');
-  console.log('✓ Dry-run complete (no network calls made).');
+  ok('✓ Dry-run complete (no network calls made).');
 }
 
 async function liveRun(manifest, signed, publicKey) {
   if (!REGISTRY_URL) {
-    console.error('✗ --live requires WOP_PACK_REGISTRY_URL');
+    fail('✗ --print-publish-cmd requires WOP_PACK_REGISTRY_URL');
     process.exit(1);
   }
   if (!PUBLISH_KEY) {
-    console.error('✗ --live requires WOP_PACK_PUBLISH_KEY (super-admin Bearer)');
+    fail('✗ --print-publish-cmd requires WOP_PACK_PUBLISH_KEY (super-admin Bearer)');
     process.exit(1);
   }
 
   console.log(`→ Probing registry: ${REGISTRY_URL}/.well-known/wop`);
   const discovery = await fetch(`${REGISTRY_URL}/.well-known/wop`);
   if (!discovery.ok) {
-    console.error(`✗ discovery failed: ${discovery.status}`);
+    fail(`✗ discovery failed: ${discovery.status}`);
     process.exit(1);
   }
   const caps = await discovery.json();
@@ -127,10 +146,10 @@ async function liveRun(manifest, signed, publicKey) {
   // ship one. The --live mode here is documentation for the path; a
   // production publishing tool builds the tarball from a project dir.
   console.log('');
-  console.log('⊘ --live mode requires a built pack tarball — the example doesn\'t');
-  console.log('  ship a buildable pack source. To complete live publish:');
-  console.log('  1. Build a tarball from your pack source dir.');
-  console.log('  2. PUT it via the curl command printed in --dry-run mode.');
+  skip('⊘ --print-publish-cmd mode requires a built pack tarball — the example doesn\'t');
+  skip('  ship a buildable pack source. To complete live publish:');
+  skip('  1. Build a tarball from your pack source dir.');
+  skip('  2. PUT it via the curl command printed in --dry-run mode.');
   console.log('');
   console.log('  This split is intentional: the example demonstrates manifest');
   console.log('  + signing flow safely; the actual build + PUT is a per-pack');
@@ -140,7 +159,7 @@ async function liveRun(manifest, signed, publicKey) {
 
 async function main() {
   console.log('=== WOP node-pack publishing example ===');
-  console.log(`Mode: ${LIVE ? 'live' : 'dry-run (default)'}`);
+  console.log(`Mode: ${LIVE ? 'print-publish-cmd' : 'dry-run (default)'}`);
   console.log('');
 
   // Step 1: keypair
@@ -162,6 +181,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`✗ ${err.message}`);
+  fail(`✗ ${err.message}`);
   process.exit(1);
 });

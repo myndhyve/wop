@@ -35,16 +35,25 @@
 
 import { randomUUID } from 'node:crypto';
 
+// Tiny ANSI helpers — colors when stdout is a TTY, no-op when piped/CI.
+const _tty = process.stdout.isTTY;
+const _c = _tty
+  ? { dim: '\x1b[2m', red: '\x1b[31m', green: '\x1b[32m', reset: '\x1b[0m' }
+  : { dim: '', red: '', green: '', reset: '' };
+const skip = (msg) => console.log(`${_c.dim}${msg}${_c.reset}`);
+const fail = (msg) => console.error(`${_c.red}${msg}${_c.reset}`);
+const ok = (msg) => console.log(`${_c.green}${msg}${_c.reset}`);
+
 const BASE_URL = process.env.WOP_MYNDHYVE_BASE_URL ?? '';
 const API_KEY = process.env.WOP_MYNDHYVE_API_KEY ?? '';
 const WORKFLOW_ID = process.env.WOP_WORKFLOW_ID ?? '';
 
 if (!BASE_URL) {
-  console.log('⊘ mcp-tool: WOP_MYNDHYVE_BASE_URL unset — skip-equivalent.');
+  skip('⊘ mcp-tool: WOP_MYNDHYVE_BASE_URL unset — skip-equivalent.');
   process.exit(0);
 }
 if (!API_KEY) {
-  console.error('✗ mcp-tool: WOP_MYNDHYVE_API_KEY required.');
+  fail('✗ mcp-tool: WOP_MYNDHYVE_API_KEY required.');
   process.exit(1);
 }
 
@@ -82,7 +91,7 @@ async function main() {
   console.log(`→ Discovery: ${BASE_URL}/.well-known/wop`);
   const discovery = await fetch(`${BASE_URL}/.well-known/wop`);
   if (!discovery.ok) {
-    console.error(`✗ discovery failed: ${discovery.status}`);
+    fail(`✗ discovery failed: ${discovery.status}`);
     process.exit(1);
   }
   const caps = await discovery.json();
@@ -91,14 +100,16 @@ async function main() {
   // Probe for MCP advertisement.
   const mcpCandidates = detectMcpExtension(caps);
   if (mcpCandidates.length === 0) {
-    console.log(`⊘ Host doesn't advertise MCP support under any vendor prefix.`);
-    console.log(`  Looked under: capabilities.mcp + capabilities.<vendor>.mcp`);
-    console.log(`  This example targets hosts with MCP extensions wired.`);
+    skip(`⊘ Host doesn't advertise MCP support under any vendor prefix.`);
+    skip(`  Looked under: capabilities.mcp + capabilities.<vendor>.mcp`);
+    skip(`  This example targets hosts with MCP extensions wired.`);
     process.exit(0); // skip-equivalent
   }
   console.log(`  ✓ MCP advertisement found:`);
   for (const c of mcpCandidates) {
-    console.log(`    capabilities.${c.key}: ${JSON.stringify(c.value).slice(0, 100)}`);
+    const json = JSON.stringify(c.value);
+    const display = json.length > 100 ? json.slice(0, 100) + '...' : json;
+    console.log(`    capabilities.${c.key}: ${display}`);
   }
 
   if (!WORKFLOW_ID) {
@@ -116,11 +127,11 @@ async function main() {
   const idemKey = `wop-example-mcp-tool-${process.env.GITHUB_RUN_ID ?? randomUUID()}`;
   const create = await http('POST', '/v1/runs', { workflowId: WORKFLOW_ID }, { idempotencyKey: idemKey });
   if (create.status === 404) {
-    console.log(`⊘ Workflow "${WORKFLOW_ID}" not seeded; skip-equivalent.`);
+    skip(`⊘ Workflow "${WORKFLOW_ID}" not seeded; skip-equivalent.`);
     process.exit(0);
   }
   if (create.status !== 201) {
-    console.error(`✗ run failed: ${create.status} ${JSON.stringify(create.json)}`);
+    fail(`✗ run failed: ${create.status} ${JSON.stringify(create.json)}`);
     process.exit(1);
   }
   const { runId } = create.json;
@@ -159,11 +170,11 @@ async function main() {
   // to reach terminal — a stalled run is a real failure. The discovery-
   // only path (no WORKFLOW_ID) returns earlier above and never hits here.
   if (!TERMINAL.has(lastStatus)) {
-    console.error(`✗ Run ${runId} did not reach terminal within 30s; last status: ${lastStatus}`);
+    fail(`✗ Run ${runId} did not reach terminal within 30s; last status: ${lastStatus}`);
     process.exit(1);
   }
   if (lastStatus !== 'completed') {
-    console.error(`✗ Expected completed, got ${lastStatus}`);
+    fail(`✗ Expected completed, got ${lastStatus}`);
     process.exit(1);
   }
 
@@ -172,10 +183,11 @@ async function main() {
     console.log(`        Host may emit tool events under non-standard type names.`);
   }
 
-  console.log(`✓ MCP probe + observation complete`);
+  console.log('');
+  ok(`✓ MCP probe + observation complete`);
 }
 
 main().catch((err) => {
-  console.error(`✗ ${err.message}`);
+  fail(`✗ ${err.message}`);
   process.exit(1);
 });

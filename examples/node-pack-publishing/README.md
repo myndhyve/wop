@@ -2,9 +2,9 @@
 
 Walks through building a pack manifest, signing with Ed25519, and (optionally) publishing to a registry. **Defaults to `--dry-run` mode** — no network calls, no auth required, safe to run anywhere.
 
-| Profile required | `wop-node-packs` (for `--live` mode) |
-| Host target      | None for dry-run; super-admin-authorized registry for `--live` |
-| Run modes        | `--dry-run` (default) / `--live` |
+| Profile required | `wop-node-packs` (for `--print-publish-cmd` mode) |
+| Host target      | None for dry-run; super-admin-authorized registry for `--print-publish-cmd` |
+| Run modes        | default (dry-run) / `--print-publish-cmd` |
 
 ## Why dry-run by default
 
@@ -21,10 +21,13 @@ Per the LT2.3 / Q6 host-registry pattern, **publishing to a real registry requir
 # Default (no auth, no network)
 npm start
 
-# Live mode (requires super-admin)
+# Print the curl PUT command (requires super-admin env vars)
+# Renamed from --live in this version; --live is accepted as a
+# deprecated alias. The flag prints the publish command but does NOT
+# execute it — the example doesn't ship a buildable pack source.
 WOP_PACK_REGISTRY_URL=https://your-registry.example \
 WOP_PACK_PUBLISH_KEY=$YOUR_SUPER_ADMIN_KEY \
-  npm start -- --live
+  npm start -- --print-publish-cmd
 ```
 
 ## Output (dry-run)
@@ -59,7 +62,8 @@ To publish to a real registry:
          -H "Authorization: Bearer $WOP_PACK_PUBLISH_KEY" \
          -H "Content-Type: application/gzip" \
          --data-binary @pack.tgz
-  4. Re-run this example with --live to do steps 2-3 automatically.
+  4. Re-run this example with --print-publish-cmd to print the
+     populated curl command (the example doesn't run the PUT itself).
 
 ✓ Dry-run complete (no network calls made).
 ```
@@ -74,7 +78,7 @@ To publish to a real registry:
 ## What this does NOT do
 
 - **Build a pack tarball.** Real publishing tar-packs a manifest + `dist/` directory. The example has no `dist/` to pack — it's documentation, not a working pack.
-- **Register the public key.** A real registry validates signatures against pre-registered public keys (super-admin operation). The example generates ephemeral keys; even if you ran `--live`, the registry would reject the signature with `signature_unknown_key` since the public key isn't in the keychain.
+- **Register the public key.** A real registry validates signatures against pre-registered public keys (super-admin operation). The example generates ephemeral keys; even if you ran `--print-publish-cmd` and copy-pasted the curl, the registry would reject the signature with `signature_unknown_key` since the public key isn't in the keychain.
 - **Test the registry's response shape.** The conformance scenarios `pack-registry.test.ts` + `maliciousManifest.test.ts` cover the registry HTTP contract.
 
 ## Why the live PUT is intentionally incomplete

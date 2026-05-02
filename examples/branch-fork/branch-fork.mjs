@@ -23,17 +23,26 @@
 
 import { randomUUID } from 'node:crypto';
 
+// Tiny ANSI helpers — colors when stdout is a TTY, no-op when piped/CI.
+const _tty = process.stdout.isTTY;
+const _c = _tty
+  ? { dim: '\x1b[2m', red: '\x1b[31m', green: '\x1b[32m', reset: '\x1b[0m' }
+  : { dim: '', red: '', green: '', reset: '' };
+const skip = (msg) => console.log(`${_c.dim}${msg}${_c.reset}`);
+const fail = (msg) => console.error(`${_c.red}${msg}${_c.reset}`);
+const ok = (msg) => console.log(`${_c.green}${msg}${_c.reset}`);
+
 const BASE_URL = process.env.WOP_MYNDHYVE_BASE_URL ?? '';
 const API_KEY = process.env.WOP_MYNDHYVE_API_KEY ?? '';
 const WORKFLOW_ID = process.env.WOP_WORKFLOW_ID ?? 'conformance-noop';
 const TERMINAL = new Set(['completed', 'failed', 'cancelled']);
 
 if (!BASE_URL) {
-  console.log('⊘ branch-fork: WOP_MYNDHYVE_BASE_URL unset — skip-equivalent.');
+  skip('⊘ branch-fork: WOP_MYNDHYVE_BASE_URL unset — skip-equivalent.');
   process.exit(0);
 }
 if (!API_KEY) {
-  console.error('✗ branch-fork: WOP_MYNDHYVE_API_KEY required.');
+  fail('✗ branch-fork: WOP_MYNDHYVE_API_KEY required.');
   process.exit(1);
 }
 
@@ -69,19 +78,19 @@ async function main() {
   console.log(`→ Discovery: ${BASE_URL}/.well-known/wop`);
   const discoveryRes = await fetch(`${BASE_URL}/.well-known/wop`);
   if (!discoveryRes.ok) {
-    console.error(`✗ discovery failed: ${discoveryRes.status}`);
+    fail(`✗ discovery failed: ${discoveryRes.status}`);
     process.exit(1);
   }
   const caps = await discoveryRes.json();
   const replay = caps.replay ?? {};
   if (replay.supported !== true) {
-    console.log(`⊘ Host doesn't claim wop-replay-fork (replay.supported is ${replay.supported}).`);
-    console.log(`  This example requires a host claiming the profile.`);
+    skip(`⊘ Host doesn't claim wop-replay-fork (replay.supported is ${replay.supported}).`);
+    skip(`  This example requires a host claiming the profile.`);
     process.exit(0); // skip-equivalent
   }
   const modes = Array.isArray(replay.modes) ? replay.modes : [];
   if (!modes.includes('branch')) {
-    console.log(`⊘ Host doesn't advertise 'branch' mode (advertises: [${modes.join(', ')}]).`);
+    skip(`⊘ Host doesn't advertise 'branch' mode (advertises: [${modes.join(', ')}]).`);
     process.exit(0);
   }
   console.log(`  ✓ Host claims wop-replay-fork; modes: [${modes.join(', ')}]`);
@@ -91,11 +100,11 @@ async function main() {
   console.log(`→ POST /v1/runs (parent) — workflowId: "${WORKFLOW_ID}"`);
   const parent = await http('POST', '/v1/runs', { workflowId: WORKFLOW_ID }, { idempotencyKey: idemKey });
   if (parent.status === 404) {
-    console.log(`⊘ Workflow "${WORKFLOW_ID}" not seeded on host; skip-equivalent.`);
+    skip(`⊘ Workflow "${WORKFLOW_ID}" not seeded on host; skip-equivalent.`);
     process.exit(0);
   }
   if (parent.status !== 201) {
-    console.error(`✗ parent run failed: ${parent.status}`);
+    fail(`✗ parent run failed: ${parent.status}`);
     process.exit(1);
   }
   const parentRunId = parent.json.runId;
@@ -113,11 +122,11 @@ async function main() {
     { idempotencyKey: `${idemKey}-fork` },
   );
   if (fork.status === 501) {
-    console.log(`⊘ Fork mode=branch returned 501 — host has the route stubbed; skip-equivalent.`);
+    skip(`⊘ Fork mode=branch returned 501 — host has the route stubbed; skip-equivalent.`);
     process.exit(0);
   }
   if (![200, 201].includes(fork.status)) {
-    console.error(`✗ fork failed: ${fork.status} ${JSON.stringify(fork.json)}`);
+    fail(`✗ fork failed: ${fork.status} ${JSON.stringify(fork.json)}`);
     process.exit(1);
   }
   const forkRunId = fork.json.runId;
@@ -125,16 +134,17 @@ async function main() {
 
   // Phase 3 — verify fork is a distinct run that reaches terminal.
   if (forkRunId === parentRunId) {
-    console.error(`✗ fork returned same runId as parent — fork MUST mint a new runId`);
+    fail(`✗ fork returned same runId as parent — fork MUST mint a new runId`);
     process.exit(1);
   }
   const forkSnap = await pollUntil(forkRunId, (s) => TERMINAL.has(s.status));
   console.log(`  ✓ fork reached terminal: ${forkSnap.status}`);
   if (forkSnap.status !== 'completed') {
-    console.error(`✗ Expected fork to complete, got ${forkSnap.status}`);
+    fail(`✗ Expected fork to complete, got ${forkSnap.status}`);
     process.exit(1);
   }
-  console.log(`✓ Branch fork lifecycle complete`);
+  console.log('');
+  ok(`✓ Branch fork lifecycle complete`);
   console.log('');
   console.log('Note: branch mode permits divergent execution by design.');
   console.log('For deterministic replay, see spec/v1/replay.md mode=replay');
@@ -142,6 +152,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`✗ ${err.message}`);
+  fail(`✗ ${err.message}`);
   process.exit(1);
 });

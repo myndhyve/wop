@@ -11,8 +11,10 @@ Runnable example projects that demonstrate the WOP wire contract. Each example i
 | [`idempotent-runs/`](./idempotent-runs/) | `wop-core` | Any | in-memory host |
 | [`approval-workflow/`](./approval-workflow/) | `wop-interrupts` | MyndHyve (or any host claiming the profile) | skip-equivalent without `WOP_MYNDHYVE_BASE_URL` |
 | [`branch-fork/`](./branch-fork/) | `wop-replay-fork` (with `branch` mode) | MyndHyve | skip-equivalent without `WOP_MYNDHYVE_BASE_URL` |
-| [`mcp-tool/`](./mcp-tool/) | host-extension probe (`myndhyve.mcp` or equivalent) | MyndHyve | skip-equivalent without `WOP_MYNDHYVE_BASE_URL` |
-| [`node-pack-publishing/`](./node-pack-publishing/) | `wop-node-packs` | n/a — defaults to `--dry-run` mode | always passes (dry-run) |
+| [`mcp-tool/`](./mcp-tool/) | host-extension probe<sup>†</sup> | MyndHyve | skip-equivalent without `WOP_MYNDHYVE_BASE_URL` |
+| [`node-pack-publishing/`](./node-pack-publishing/) | `wop-node-packs` | n/a — defaults to dry-run | always passes (dry-run) |
+
+<sup>†</sup> `mcp-tool` probes for an MCP advertisement under any vendor prefix in `/.well-known/wop` (e.g., `capabilities.myndhyve.mcp`, `capabilities.mcp`, `capabilities.<vendor>.mcp`). When no `wop-mcp` profile exists in the catalog yet, this is a vendor-extension probe-and-skip per `spec/v1/host-extensions.md`.
 
 ## Env-var taxonomy
 
