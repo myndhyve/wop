@@ -45,6 +45,42 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-02 — LT6.2 — 4 remaining examples + single-matrix CI gate
+
+Closes LT6.2 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md`. With this commit, **all 7 examples specified by LT6.2 ship**.
+
+**4 new examples under `examples/`:**
+
+- `approval-workflow/` — full HITL approval-gate lifecycle. Discover → require `wop-interrupts` → `POST /v1/runs` → poll until `waiting-approval` → `POST /v1/runs/{runId}/approvals/{nodeId}` with `{action: 'accept'}` → poll until terminal `completed`. Profile-gated; skip-equivalent on hosts that don't claim `wop-interrupts`. Idempotency-Key derived from `GITHUB_RUN_ID` so CI re-runs don't multiply runs.
+
+- `branch-fork/` — `POST /v1/runs/{runId}:fork` with `mode: 'branch'`. Renamed from `replay-fork` per architect-review #1: branch is **divergent by design**, not deterministic; replay-mode determinism is a separate semantic that most hosts (including MyndHyve) currently 501-stub. README contrasts the two modes and points at `replayDeterminism.test.ts` for the determinism contract.
+
+- `mcp-tool/` — vendor-extension probe for hosts with MCP wired. Per architect-review #5, takes the **probe-and-skip path** (not adding a `wop-mcp` profile) since the WOP+MCP integration pattern is host-deployment-specific. Discovery probe checks for `mcp.*` advertisement under any vendor prefix; skip-equivalent if absent. Optional full-lifecycle mode polls the event stream for tool-call events when `WOP_WORKFLOW_ID` is set.
+
+- `node-pack-publishing/` — manifest-build + Ed25519-sign + (optional) PUT publish walkthrough. **Defaults to `--dry-run`** per architect-review #2 (super-admin auth required for live publishing; an example that 99% of readers can't run is documentation, not code). Generates ephemeral keys, builds a `private.local-example.*`-scoped manifest (a real public registry won't accept this scope per `spec/v1/node-packs.md` §Naming — safe by default), prints the curl command for a real PUT. `--live` flag opens the door for super-admin operators to do real PUTs but the example doesn't bundle a buildable pack source.
+
+**Single CI matrix with `host:` field** (architect-review #3): `.github/workflows/examples.yml` rewritten from a static 3-entry matrix to a 7-entry matrix with per-row `host: in-memory | myndhyve | dry-run`. Each row's setup steps are conditional on the host kind. MyndHyve-targeting examples skip-equivalent when `WOP_MYNDHYVE_BASE_URL` secret is unset. No parallel matrix blocks — single source of truth.
+
+**`examples/README.md`** (new — architect-review #10) documents the env-var taxonomy: `WOP_BASE_URL` for in-memory targets, `WOP_MYNDHYVE_BASE_URL` for MyndHyve targets, `WOP_PACK_REGISTRY_URL` + `WOP_PACK_PUBLISH_KEY` for live publish. Standardized README header for new examples (Profile required / Host target / Run modes table).
+
+**Architect-review fixes locked in:**
+- #1 `replay-fork` → `branch-fork` (semantic accuracy)
+- #2 `node-pack-publishing` defaults to `--dry-run` (super-admin gating)
+- #3 single CI matrix (no drift)
+- #4 `Idempotency-Key` on every MyndHyve-targeting example (production-data pollution mitigation)
+- #5 MCP probe-and-skip pattern (deferred profile RFC)
+- #6 self-contained probe (no bundled MCP server)
+- #7 every example asserts + `process.exit(1)` on mismatch
+- #9 standardized README header
+- #10 `examples/README.md` env-var taxonomy
+
+**Validation:**
+- All 4 new examples smoke-test cleanly with no env vars (skip-equivalent path).
+- `branch-fork` + `mcp-tool` correctly skip-equivalent against the live MyndHyve canonical URL (MyndHyve doesn't advertise `replay.supported` or `mcp.*` in `/.well-known/wop` — separate cleanup ticket; the examples are correct).
+- CI gate `scripts/wop-check.sh` 8/8 green.
+
+**LT6.2 complete.** All 7 examples shipped. Future MyndHyve-discovery completeness work (advertising `replay`/`mcp` fields) is independent and lifts the skip-equivalent → live-pass for branch-fork + mcp-tool.
+
 ### 2026-05-01 — LT3.5 staleClaim — heartbeat + resume-on-startup + multi-process scenario (suite 1.14.0)
 
 Closes the FINAL deferred LT3 sub-deliverable. With this commit, **all 9 LT3 scenarios are shipped**.

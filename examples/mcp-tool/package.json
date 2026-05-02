@@ -1,0 +1,14 @@
+{
+  "name": "@myndhyve/wop-example-mcp-tool",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WOP + MCP composition probe. Demonstrates the discovery + observation pattern for a workflow that calls MCP tools. Tests host capability advertisement and event-stream tool-call observability without requiring a live MCP server.",
+  "type": "module",
+  "scripts": {
+    "start": "node mcp-tool.mjs",
+    "test": "node mcp-tool.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

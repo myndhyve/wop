@@ -3,23 +3,21 @@ name: Examples CI
 # Examples-installer + run-through gate per LT6.7 of the post-publication
 # leadership track (docs/plans/WOP-LEADERSHIP-TRACK.md, MyndHyve-side).
 #
-# Runs every example end-to-end against the in-memory reference host
-# so that:
+# Single matrix with per-example `host:` field — no parallel matrix
+# blocks. Adding an example: drop a new dir under examples/<name>/
+# with package.json having `npm test` defined, then add a row below.
 #
-#   1. Examples don't go stale — if an example breaks against the
-#      current spec or host, this CI catches it.
-#   2. The "WOP in 10 minutes" claim in QUICKSTART-10MIN.md remains
-#      accurate. New developers who follow the guide should not be
-#      the first to discover a broken example.
+# Host targets:
+#   - in-memory  — CI starts the in-memory reference host first.
+#   - myndhyve   — CI runs only when WOP_MYNDHYVE_BASE_URL secret is set.
+#                  Otherwise the example is invoked without the env vars
+#                  and exits 0 with a "skip-equivalent" message.
+#   - dry-run    — example needs no host; runs unconditionally.
 #
-# Adding an example: drop a new dir under examples/<name>/ with a
-# package.json that exposes `npm test`. The matrix below picks it up
-# automatically once you add the dir name.
-#
-# Examples that need profile features the in-memory host doesn't
-# support (approval-workflow, replay-fork, mcp-tool, node-pack-publishing)
-# are NOT in this matrix. They target MyndHyve-only and are exercised
-# by the MyndHyve repo's CI.
+# MyndHyve-targeting examples MUST use Idempotency-Key in their HTTP
+# requests so CI re-runs collapse to a single run server-side
+# (architect-review fix #4). They also MUST exit 0 with a clear
+# "skip-equivalent" message when their target env vars are unset.
 
 on:
   push:
@@ -36,19 +34,22 @@ on:
 
 jobs:
   examples:
-    name: examples (${{ matrix.example }})
+    name: examples (${{ matrix.example.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # Each entry MUST be a directory under examples/ with a
-        # package.json that has `npm test` defined and runs against
-        # the in-memory host on http://127.0.0.1:3737 with API key
-        # `wop-inmem-dev-key`.
         example:
-          - tiny-workflow
-          - streaming-client
-          - idempotent-runs
+          # In-memory-targeting — CI starts the reference host.
+          - { name: tiny-workflow,         host: in-memory }
+          - { name: streaming-client,      host: in-memory }
+          - { name: idempotent-runs,       host: in-memory }
+          # MyndHyve-targeting — skip-equivalent without secrets.
+          - { name: approval-workflow,     host: myndhyve }
+          - { name: branch-fork,           host: myndhyve }
+          - { name: mcp-tool,              host: myndhyve }
+          # Dry-run — no host needed.
+          - { name: node-pack-publishing,  host: dry-run }
     steps:
       - uses: actions/checkout@v4
 
@@ -57,11 +58,14 @@ jobs:
         with:
           node-version: '20'
 
+      # In-memory host setup — only when host == in-memory
       - name: Install in-memory host
+        if: matrix.example.host == 'in-memory'
         working-directory: examples/hosts/in-memory
         run: npm install
 
       - name: Start in-memory host
+        if: matrix.example.host == 'in-memory'
         working-directory: examples/hosts/in-memory
         run: |
           npm start > /tmp/wop-host.log 2>&1 &
@@ -75,18 +79,25 @@ jobs:
           cat /tmp/wop-host.log >&2
           exit 1
 
+      # Common: install + run the example.
       - name: Install example deps
-        working-directory: examples/${{ matrix.example }}
+        working-directory: examples/${{ matrix.example.name }}
         run: npm install --silent
 
       - name: Run example
-        working-directory: examples/${{ matrix.example }}
+        working-directory: examples/${{ matrix.example.name }}
         env:
+          # In-memory env (only used when host == in-memory)
           WOP_BASE_URL: http://127.0.0.1:3737
           WOP_API_KEY: wop-inmem-dev-key
+          # MyndHyve env (only set in CI when org secrets are configured;
+          # otherwise these are empty and the MyndHyve-targeting examples
+          # skip-equivalent).
+          WOP_MYNDHYVE_BASE_URL: ${{ secrets.WOP_MYNDHYVE_BASE_URL }}
+          WOP_MYNDHYVE_API_KEY: ${{ secrets.WOP_MYNDHYVE_API_KEY }}
         run: npm test
         timeout-minutes: 2
 
       - name: Show host log on failure
-        if: failure()
+        if: failure() && matrix.example.host == 'in-memory'
         run: cat /tmp/wop-host.log

@@ -1,0 +1,14 @@
+{
+  "name": "@myndhyve/wop-example-branch-fork",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WOP branch-mode fork example: complete a parent run, fork from a chosen sequence, observe divergent execution. Uses POST /v1/runs/{runId}:fork with mode=branch. Replay-mode determinism is a separate semantic (see spec/v1/replay.md and replayDeterminism conformance scenario).",
+  "type": "module",
+  "scripts": {
+    "start": "node branch-fork.mjs",
+    "test": "node branch-fork.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
