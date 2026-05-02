@@ -20,7 +20,6 @@
 // @see spec/v1/registry-operations.md §"Submission validation"
 
 import { generateKeyPairSync, sign as ed25519Sign } from 'node:crypto';
-import { stringify as jsonStringify } from 'node:querystring';
 
 const args = new Set(process.argv.slice(2));
 const LIVE = args.has('--live');

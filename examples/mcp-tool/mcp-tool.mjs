@@ -130,32 +130,46 @@ async function main() {
   console.log(`→ Polling /v1/runs/${runId}/events/poll for tool-call observability...`);
   const TERMINAL = new Set(['completed', 'failed', 'cancelled']);
   let toolCallCount = 0;
-  let isComplete = false;
+  let lastStatus = 'pending';
   let pollCount = 0;
   const deadline = Date.now() + 30000;
-  while (Date.now() < deadline && !isComplete) {
+  while (Date.now() < deadline) {
     pollCount++;
     const res = await http('GET', `/v1/runs/${encodeURIComponent(runId)}/events/poll`);
     if (res.status === 200 && res.json) {
       const events = res.json.events ?? [];
       // Tool-call events vary in shape per host — we look for type
-      // strings containing "tool" as the cross-host probe.
+      // strings containing "tool" or "mcp" as the cross-host probe.
       const toolEvents = events.filter((e) =>
         typeof e.type === 'string' && (e.type.includes('tool') || e.type.includes('mcp')),
       );
       toolCallCount = toolEvents.length;
-      if (res.json.isComplete === true) isComplete = true;
-
-      const snap = await http('GET', `/v1/runs/${encodeURIComponent(runId)}`);
-      if (snap.status === 200 && snap.json && TERMINAL.has(snap.json.status)) break;
     }
-    if (!isComplete) await new Promise((r) => setTimeout(r, 500));
+
+    const snap = await http('GET', `/v1/runs/${encodeURIComponent(runId)}`);
+    if (snap.status === 200 && snap.json && typeof snap.json.status === 'string') {
+      lastStatus = snap.json.status;
+      if (TERMINAL.has(lastStatus)) break;
+    }
+    await new Promise((r) => setTimeout(r, 500));
   }
-  console.log(`  ✓ ${toolCallCount} tool-related event(s) observed across ${pollCount} polls`);
+  console.log(`  ${toolCallCount} tool-related event(s) observed across ${pollCount} polls`);
+
+  // When the user explicitly set WOP_WORKFLOW_ID, they expect the run
+  // to reach terminal — a stalled run is a real failure. The discovery-
+  // only path (no WORKFLOW_ID) returns earlier above and never hits here.
+  if (!TERMINAL.has(lastStatus)) {
+    console.error(`✗ Run ${runId} did not reach terminal within 30s; last status: ${lastStatus}`);
+    process.exit(1);
+  }
+  if (lastStatus !== 'completed') {
+    console.error(`✗ Expected completed, got ${lastStatus}`);
+    process.exit(1);
+  }
 
   if (toolCallCount === 0) {
-    console.log(`  Note: workflow may not have invoked an MCP tool, or host`);
-    console.log(`        emits tool events under different type names.`);
+    console.log(`  Note: workflow completed without observable tool-call events.`);
+    console.log(`        Host may emit tool events under non-standard type names.`);
   }
 
   console.log(`✓ MCP probe + observation complete`);

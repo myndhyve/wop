@@ -136,7 +136,11 @@ async function main() {
   console.log(`  ✓ accept dispatched`);
 
   console.log(`→ Polling until terminal...`);
-  const terminal = await pollUntil(runId, (s) => TERMINAL.has(s.status), { timeoutMs: 30000 });
+  // Generous post-approval timeout: real approval workflows may have
+  // delay nodes / sub-workflows after the gate. The fixture workflow
+  // (`conformance-approval`) completes in milliseconds; custom
+  // WOP_WORKFLOW_ID values may take longer.
+  const terminal = await pollUntil(runId, (s) => TERMINAL.has(s.status), { timeoutMs: 60000 });
   console.log(`  ✓ status: ${terminal.status}`);
   if (terminal.status !== 'completed') {
     console.error(`✗ Expected completed, got ${terminal.status}`);

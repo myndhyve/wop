@@ -55,6 +55,14 @@ and the conformance scenario replayDeterminism.test.ts.
 - **Determinism.** Branch mode doesn't guarantee it. See `replayDeterminism.test.ts` in the conformance suite for the determinism contract that gates on `mode: 'replay'`.
 - **runOptionsOverlay.** Branch supports per-fork `configurable` overrides; this example doesn't exercise that surface to keep it focused. Add `{ mode: 'branch', fromSeq: 0, runOptionsOverlay: {...} }` to fork the parent with different model/temperature/etc.
 
+## Known limitations
+
+As of 2026-05-02, the **MyndHyve canonical Cloud Run deployment doesn't advertise `replay.supported: true` in `/.well-known/wop`** — the fork route is wired (`canonicalRuns.ts:1856` ships `branch` mode) but the discovery payload doesn't surface the capability. This example's profile-gating predicate (`replay.supported === true && replay.modes` non-empty) skip-equivalents against MyndHyve as a result.
+
+Filed as a follow-up: MyndHyve discovery should advertise `replay: { supported: true, modes: ['branch'] }` so this example auto-upgrades from skip-equivalent → live-pass without code changes. A host that already exposes the route SHOULD declare it.
+
+To force-run the example against MyndHyve before that lands (and confirm the route works end-to-end), point `WOP_WORKFLOW_ID` at a fixture the host has seeded and run with the discovery check temporarily relaxed — but the safer path is to wait for the discovery completeness work.
+
 ## See also
 
 - [`../../spec/v1/replay.md`](../../spec/v1/replay.md) — full fork contract
