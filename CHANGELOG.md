@@ -45,6 +45,26 @@ Releases prior to v1.0 (the iteration days that built up to this final tag) are 
 
 ## [Unreleased]
 
+### 2026-05-02 — Conformance suite 1.15.0 — error-envelope additionalProperties tightening + correlationId convention
+
+Tightens `errors.test.ts` to assert the schema's `additionalProperties: false` constraint at runtime + documents the `details.correlationId` placement convention in `rest-endpoints.md`.
+
+**Why now.** The MyndHyve LT5.5 debug-bundle handler initially placed `correlationId` at the top level of its 500 envelope. That violates `schemas/error-envelope.schema.json` (`additionalProperties: false`) — strict validators reject it. The same drift could happen on any host, and no conformance scenario was catching it. This release adds the gate.
+
+**`spec/v1/rest-endpoints.md` §"Error response shape" updates:**
+- Explicit note that the wire shape is locked at `{error, message, details}`. `details` is the canonical home for contextual data.
+- New §"`details.correlationId` convention (RECOMMENDED for 5xx)" documents the placement: server-side trace IDs go under `details.correlationId`, never at the top level. RECOMMENDED, not REQUIRED — hosts that don't emit trace IDs are still conformant.
+
+**`conformance/src/scenarios/errors.test.ts` updates:**
+- `assertErrorEnvelope` now checks that the body has only keys from `{error, message, details}` — top-level `correlationId` / `hint` / `requestId` / etc. fail the scenario.
+- New `assertCorrelationIdShape` helper pins the `details.correlationId` type when present.
+- Existing 404 and 400 scenarios now call both helpers.
+- New scenario explicitly probes for top-level `correlationId` and asserts absence — gives operators a clear failure when a host gets the placement wrong.
+
+**Suite bumped 1.14.0 → 1.15.0.** Additive scenario expansion against the unchanged v1.0 protocol.
+
+**Validation:** `scripts/wop-check.sh` 8/8 green. New scenarios run server-required against any conforming host; pass against the MyndHyve canonical URL post the in-tree sweep that lands alongside this release.
+
 ### 2026-05-02 — LT6.2 — 4 remaining examples + single-matrix CI gate
 
 Closes LT6.2 of the post-publication leadership track per `docs/plans/WOP-LEADERSHIP-TRACK.md`. With this commit, **all 7 examples specified by LT6.2 ship**.

@@ -147,6 +147,34 @@ All error responses (REST surface) MUST be JSON:
 }
 ```
 
+The wire shape is locked at exactly these three top-level fields per `schemas/error-envelope.schema.json` (`additionalProperties: false`). Hosts that need to surface contextual data (retry hints, conflict refs, server-side trace IDs, validation field paths) MUST place it under `details`, never at a new top level.
+
+### `details.correlationId` convention (RECOMMENDED for 5xx)
+
+When a host issues a server-side trace ID for a 5xx response so the API consumer can quote it when filing a bug, the canonical home is `details.correlationId`:
+
+```json
+{
+  "error": "internal_error",
+  "message": "An unexpected error occurred.",
+  "details": {
+    "correlationId": "01H8Z9..."
+  }
+}
+```
+
+Reasoning:
+
+- The schema declares `additionalProperties: false`, so a top-level `correlationId` is non-conformant. Strict validators reject it.
+- `details` is the documented contextual-data slot. Existing examples in this spec (`retryAfter`, `activeRunId`, `capability`, `requirement`) follow the same pattern.
+- The convention is RECOMMENDED, not REQUIRED. Hosts that don't emit trace IDs are still spec-conformant.
+
+The conformance suite's `errors.test.ts` (suite version 1.15.0+) asserts:
+1. No top-level keys outside `{error, message, details}` (additionalProperties:false equivalent).
+2. When present, `details.correlationId` MUST be a non-empty string.
+
+Hosts emitting `correlationId` at the top level (or other extras like `hint` / `requestId` / `traceId`) MUST move them under `details`.
+
 Common error codes:
 - `unauthenticated`, `forbidden`, `key_expired`, `key_revoked` — see `auth.md`
 - `validation_error` — request body/params malformed; `details` enumerates fields

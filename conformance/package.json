@@ -1,7 +1,7 @@
 {
   "name": "@myndhyve/wop-conformance",
-  "version": "1.14.0",
-  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.14.0). 1.14.0 closes LT3 fully: staleClaim multi-process scenario (process A dies mid-run, process B boots + resumes after claim TTL expires). Plus new lib/multiProcess.ts harness for spawning host child processes with direct PID control. Opt-in via WOP_RUN_STALE_CLAIM=1. 1.13.0 added LT3 timing-sensitive scenarios: streamReconnect, replayDeterminism, interruptRace + new wop-replay-fork profile. 1.12.0 added LT5 debug-bundle. 1.11.0 added LT3 partial: idempotencyRetry, redactionAdversarial, providerPolicyEnforcement, maliciousManifest, eventOrdering.",
+  "version": "1.15.0",
+  "description": "Black-box conformance test suite for WOP-compliant servers. FINAL v1.0 (suite at 1.15.0). 1.15.0 tightens errors.test.ts to assert additionalProperties:false equivalent (no top-level keys outside {error, message, details}) + adds details.correlationId placement convention assertions. Catches hosts that emit correlationId/hint/requestId at the top level — those violate schemas/error-envelope.schema.json. 1.14.0 closed LT3 fully (staleClaim multi-process). 1.13.0 added LT3 timing-sensitive scenarios + wop-replay-fork profile. 1.12.0 added LT5 debug-bundle.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/myndhyve/wop.git",
